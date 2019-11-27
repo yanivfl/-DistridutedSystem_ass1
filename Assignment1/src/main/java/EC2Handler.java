@@ -23,10 +23,12 @@ import com.amazonaws.services.ec2.model.DescribeTagsResult;
 
 public class EC2Handler {
 
-    private static final String AMI = "ami-b66ed3de";
-    private static final String TAG_MANAGER = "TAG_MANAGER";
-    private static final String TAG_WORKER = "TAG_WORKER";
 
+
+    /**
+     * initialize a connection with our EC2
+     * @return AmazonEC2: this is an EC2 instance
+     */
     public static AmazonEC2 connectEC2(){
         AWSCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
         return  AmazonEC2ClientBuilder.standard()
@@ -35,9 +37,15 @@ public class EC2Handler {
                 .build();
     }
 
-    public static List<Instance> launchEC2Instance(AmazonEC2 ec2) throws Exception {
+    /**
+     * launch machine instances as requested in machineCount
+     * @param ec2: instace of EC2
+     * @param machineCount: number of machine instances to launch
+     * @return List<Instance>: list of machines instances we launched
+     */
+    public static List<Instance> launchEC2Instances(AmazonEC2 ec2, int machineCount) throws Exception {
         try {
-            RunInstancesRequest request = new RunInstancesRequest(AMI, 1, 1);
+            RunInstancesRequest request = new RunInstancesRequest(Constants.AMI, machineCount, machineCount);
             request.setInstanceType(InstanceType.T2Micro.toString());
             List<Instance> instances = ec2.runInstances(request).getReservation().getInstances();
             System.out.println("Launch instances: " + instances);
@@ -45,14 +53,16 @@ public class EC2Handler {
             return instances;
 
         } catch (AmazonServiceException ase) {
-            System.out.println("Caught Exception: " + ase.getMessage());
-            System.out.println("Response Status Code: " + ase.getStatusCode());
-            System.out.println("Error Code: " + ase.getErrorCode());
-            System.out.println("Request ID: " + ase.getRequestId());
+            printException(ase);
             return null;
         }
     }
 
+    /**
+     * terminate requested machine instance
+     * @param ec2Client: instace of EC2
+     * @return boolean: true  iff instance was terminated
+     */
     public static boolean terminateEC2Instance(AmazonEC2 ec2Client, String instanecID) throws Exception {
         try {
             TerminateInstancesRequest terminateInstancesRequest = new TerminateInstancesRequest()
@@ -66,10 +76,7 @@ public class EC2Handler {
             return true;
 
         } catch (AmazonServiceException ase) {
-            System.out.println("Caught Exception: " + ase.getMessage());
-            System.out.println("Response Status Code: " + ase.getStatusCode());
-            System.out.println("Error Code: " + ase.getErrorCode());
-            System.out.println("Request ID: " + ase.getRequestId());
+            printException(ase);
             return false;
         }
 
@@ -134,7 +141,7 @@ public class EC2Handler {
      */
     private static boolean isMangaer(List<TagDescription> tags) {
         for (TagDescription tag: tags) {
-            if (tag.getValue().equals(TAG_MANAGER))
+            if (tag.getValue().equals(Constants.TAG_MANAGER))
                 return true;
         }
         return false;

@@ -8,9 +8,10 @@ public class LocalApplication {
 
     public static void main(String[] args) throws Exception {
         AmazonEC2 ec2= EC2Handler.connectEC2();
-        List<Instance> myInstances = EC2Handler.launchEC2Instance(ec2);
+        List<Instance> myInstances = EC2Handler.launchEC2Instances(ec2, 1);
         if(myInstances != null){
-            String instanceIdToTerminate = myInstances.get(0).getInstanceId();
+            Instance manager = myInstances.get(0);
+            String instanceIdToTerminate = manager.getInstanceId();
             EC2Handler.terminateEC2Instance(ec2, instanceIdToTerminate);
         }
     }
