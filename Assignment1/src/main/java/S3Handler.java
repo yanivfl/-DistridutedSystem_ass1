@@ -26,25 +26,61 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 public class S3Handler {
 
-    public static AmazonS3 connectS3(){
-        AWSCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
+    /**
+     * initialize a connection with our S3
+     * @param credentials - our credentials
+     * @return AmazonEC2: this is an S3 instance
+     */
+    public static AmazonS3 connectS3(AWSCredentialsProvider credentials){
         return AmazonS3ClientBuilder.standard()
-                .withCredentials(credentialsProvider)
+                .withCredentials(credentials)
                 .withRegion(Regions.US_EAST_1)
                 .build();
     }
 
-    public static String getAwsBucketName(String directoryName){
-        AWSCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
-        return credentialsProvider.getCredentials().getAWSAccessKeyId() + "_" + directoryName.replace('\\', '_').replace('/', '_').replace(':', '_');
+    private static String getAwsBucketName(AWSCredentialsProvider credentials, String name){
+        String bucketName = credentials.getCredentials().getAWSAccessKeyId() + "-" + name.
+                replace('\\', '_').
+                replace('/', '_').
+                replace(':', '_');
+        bucketName = bucketName.toLowerCase();
+        return bucketName;
     }
 
-    public static String getAwsFileName(String FileName){
-        return FileName.replace('\\', '_').replace('/', '_').replace(':', '_');
+    private static String getAwsFileName(String FileName){
+        String fileName = FileName.
+                replace('\\', '_').
+                replace('/', '_').
+                replace(':', '_');
+        fileName = fileName.toLowerCase();
+        return fileName;
     }
 
-    public static void uploadJarDirectory(AmazonS3 s3, String directoryName) throws IOException {
-        String bucketName = getAwsBucketName(directoryName);
+    /**
+     * Create a bucket in S3
+     * @return the bucket's name
+     */
+    public static String createBucket(AWSCredentialsProvider credentials, AmazonS3 s3, String name) {
+        String bucketName = getAwsBucketName(credentials, name);
+        s3.createBucket(bucketName);
+        return bucketName;
+    }
+
+    /**
+     * Create a key name by the file's path and uploads the file to S3.
+     * params: ec2, s3, bucketName, filePath
+     * returns: the key name of the file
+     */
+    public static String uploadFileToS3(AmazonEC2 ec2, AmazonS3 s3, String bucketName, String fileName) {
+        String keyName = S3Handler.getAwsFileName(fileName);
+        File file = new File(fileName);
+        PutObjectRequest request = new PutObjectRequest(bucketName, keyName, file);
+        s3.putObject(request);
+        return keyName;
+    }
+
+    public static void uploadJarDirectory(AWSCredentialsProvider credentials, AmazonS3 s3, String directoryName) throws IOException {
+        String bucketName = getAwsBucketName(credentials, directoryName);
         String key = null;
 
         try {
@@ -91,7 +127,6 @@ public class S3Handler {
         }
     }
 
-
     public static void downloadFile(AmazonS3 s3, String bucketName, String key) throws IOException {
         /*
          * Download an object - When you download an object, you get all of
@@ -120,11 +155,6 @@ public class S3Handler {
 
     public static void deleteFile(AmazonS3 s3, String bucketName, String key) throws IOException {
         try{
-            /*
-             * Delete an object - Unless versioning has been turned on for your bucket,
-             * there is no way to undelete an object, so use caution when deleting objects.
-             */
-            System.out.println("Deleting an object\n");
             s3.deleteObject(bucketName, key);
         } catch (AmazonServiceException ase) {
             printAseException(ase);
@@ -135,13 +165,6 @@ public class S3Handler {
 
     public static void deleteBucket(AmazonS3 s3, String bucketName) throws IOException {
         try{
-
-            /*
-             * Delete a bucket - A bucket must be completely empty before it can be
-             * deleted, so remember to delete any objects from your buckets before
-             * you try to delete them.
-             */
-            System.out.println("Deleting bucket " + bucketName + "\n");
             s3.deleteBucket(bucketName);
         } catch (AmazonServiceException ase) {
             printAseException(ase);
@@ -150,7 +173,7 @@ public class S3Handler {
         }
     }
 
-   public static void printAseException(AmazonServiceException ase){
+    private static void printAseException(AmazonServiceException ase){
        System.out.println("Caught an AmazonServiceException, which means your request made it "
                + "to Amazon S3, but was rejected with an error response for some reason.");
        System.out.println("Error Message:    " + ase.getMessage());
@@ -160,7 +183,7 @@ public class S3Handler {
        System.out.println("Request ID:       " + ase.getRequestId());
    }
 
-    public static void printAceException(AmazonClientException ace){
+    private static void printAceException(AmazonClientException ace){
         System.out.println("Caught an AmazonClientException, which means the client encountered "
                 + "a serious internal problem while trying to communicate with S3, "
                 + "such as not being able to access the network.");
@@ -168,16 +191,10 @@ public class S3Handler {
     }
 
 
-
-
-
     /**
      * Displays the contents of the specified input stream as text.
-     *
-     * @param input
-     *            The input stream to display as text.
-     *
-     * @throws IOException
+     * @param input - The input stream to display as text.
+     * @throws IOException - when the is an IO error.
      */
     private static void displayTextInputStream(InputStream input) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(input));

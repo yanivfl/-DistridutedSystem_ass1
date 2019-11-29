@@ -23,27 +23,33 @@ import com.amazonaws.services.ec2.model.DescribeTagsResult;
 
 public class EC2Handler {
 
-
+    /**
+     * Create our credentials file at ~/.aws/credentials
+     * @return AWS credentials object
+     */
+    public static AWSCredentialsProvider getCredentials() {
+        return new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
+    }
 
     /**
      * initialize a connection with our EC2
+     * @param credentials - our credentials
      * @return AmazonEC2: this is an EC2 instance
      */
-    public static AmazonEC2 connectEC2(){
-        AWSCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
+    public static AmazonEC2 connectEC2(AWSCredentialsProvider credentials){
         return  AmazonEC2ClientBuilder.standard()
-                .withCredentials(credentialsProvider)
+                .withCredentials(credentials)
                 .withRegion(Regions.US_EAST_1)
                 .build();
     }
 
     /**
      * launch machine instances as requested in machineCount
-     * @param ec2: instace of EC2
+     * @param ec2: instance of EC2
      * @param machineCount: number of machine instances to launch
      * @return List<Instance>: list of machines instances we launched
      */
-    public static List<Instance> launchEC2Instances(AmazonEC2 ec2, int machineCount) throws Exception {
+    public static List<Instance> launchEC2Instances(AmazonEC2 ec2, int machineCount) {
         try {
             RunInstancesRequest request = new RunInstancesRequest(Constants.AMI, machineCount, machineCount);
             request.setInstanceType(InstanceType.T2Micro.toString());
@@ -53,7 +59,7 @@ public class EC2Handler {
             return instances;
 
         } catch (AmazonServiceException ase) {
-            printException(ase);
+            printASEException(ase);
             return null;
         }
     }
@@ -63,7 +69,7 @@ public class EC2Handler {
      * @param ec2Client: instace of EC2
      * @return boolean: true  iff instance was terminated
      */
-    public static boolean terminateEC2Instance(AmazonEC2 ec2Client, String instanecID) throws Exception {
+    public static boolean terminateEC2Instance(AmazonEC2 ec2Client, String instanecID) {
         try {
             TerminateInstancesRequest terminateInstancesRequest = new TerminateInstancesRequest()
                     .withInstanceIds(instanecID);
@@ -76,14 +82,19 @@ public class EC2Handler {
             return true;
 
         } catch (AmazonServiceException ase) {
-            printException(ase);
+            printASEException(ase);
             return false;
         }
 
     }
 
-    public static void describeInstances(AmazonEC2 ec2) {
-        boolean done = false;
+    /**
+     * Go through the list of instances in search of a given tag
+     * params: ec2, tag
+     * returns: True: There is an instance with the requested tag , False: otherwise
+     */
+    public static boolean isTagExists(AmazonEC2 ec2, String tag) {
+        boolean done = false;   // done = True - when finished going over all the instances.
         DescribeInstancesRequest instRequest = new DescribeInstancesRequest();
 
         try {
@@ -97,16 +108,11 @@ public class EC2Handler {
                         DescribeTagsRequest tagRequest = new DescribeTagsRequest().withFilters(filter);
                         DescribeTagsResult tagResult = ec2.describeTags(tagRequest);
                         List<TagDescription> tags = tagResult.getTags();
-                        boolean isManagerInst = isMangaer(tags);
 
-//                        // The app should use the existing manager node
-//                        if (isManagerInst) {
-//                            // TODO
-//                        }
-//                        // The app should start the manager node
-//                        else {
-//                            // TODO
-//                        }
+                        for (TagDescription tagDesc: tags) {
+                            if (tagDesc.getValue().equals(tag))
+                                return true;
+                        }
 
                         System.out.printf(
                                 "Found instance with id %s, " +
@@ -130,24 +136,17 @@ public class EC2Handler {
         }
 
         catch (AmazonServiceException ase) {
-            printException(ase);
+            printASEException(ase);
         }
-    }
 
-    /**
-     * Go through the list of tags and searches a manager
-     * @param tags - a list of tags
-     * @return True: The is describes a manager, False: otherwise
-     */
-    private static boolean isMangaer(List<TagDescription> tags) {
-        for (TagDescription tag: tags) {
-            if (tag.getValue().equals(Constants.TAG_MANAGER))
-                return true;
-        }
         return false;
     }
 
-    private static void printException(AmazonServiceException ase) {
+    /**
+     * prints AmazonServiceException description
+     * @param ase - AmazonServiceException
+     */
+    private static void printASEException(AmazonServiceException ase) {
         System.out.println("Caught Exception: " + ase.getMessage());
         System.out.println("Response Status Code: " + ase.getStatusCode());
         System.out.println("Error Code: " + ase.getErrorCode());
