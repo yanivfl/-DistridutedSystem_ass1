@@ -1,0 +1,6 @@
+
+# ignore mac file configuration file
+.DS_Store
+
+# ignore intellij idea folder
+.idea
