@@ -23,8 +23,9 @@ public class LocalApplication {
 
         // initial configurations
         EC2Handler ec2 = new EC2Handler();
+        S3Handler s3 = new S3Handler(ec2);
 
-        AmazonS3 s3 = S3Handler.connectS3(ec2.getCredentials());
+//        AmazonS3 s3 = S3Handler.connectS3(ec2.getCredentials());
 
         // extract input file name, output file names and optional termination message from args
         // example args: inputFileName1… inputFileNameN outputFileName1… outputFileNameN n terminate(optional)
@@ -40,13 +41,13 @@ public class LocalApplication {
 
         // Create a bucket for this local application
         UUID LocalApplicationID = UUID.randomUUID();
-        String bucketName = S3Handler.createBucket(ec2.getCredentials(), s3, LocalApplicationID.toString());
+        String bucketName = s3.createBucket(LocalApplicationID.toString());
 
         // Upload all the input files to S3
         String[] keyNames = new String[n];
         for (int i=0; i<n; i++) {
             String fileName = args[i];
-            keyNames[i] = S3Handler.uploadFileToS3(ec2.getEc2(), s3, bucketName, fileName);
+            keyNames[i] = s3.uploadFileToS3(bucketName, fileName);
         }
 
         // Send a message to an SQS queue, stating the location of the files on S3
@@ -71,9 +72,9 @@ public class LocalApplication {
 
         // delete all input files from S3 and the bucket for this local application
         for (int i=0; i<n; i++) {
-            S3Handler.deleteFile(s3, bucketName, keyNames[i]);
+            s3.deleteFile(bucketName, keyNames[i]);
         }
-        S3Handler.deleteBucket(s3, bucketName);
+        s3.deleteBucket(bucketName);
 
     }
 }

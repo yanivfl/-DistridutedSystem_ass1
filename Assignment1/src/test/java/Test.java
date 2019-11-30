@@ -23,11 +23,11 @@ public class Test {
         EC2Handler ec2 = new EC2Handler();
 
         System.out.println("connect to S3");
-        AmazonS3 s3 = S3Handler.connectS3(ec2.getCredentials());
+        S3Handler s3 = new S3Handler(ec2);
 
 //        testInstances(ec2);
-//        String fileName = "DemoFileToS3.txt";
-//        testS3(credentials, ec2, s3, fileName);
+        String fileName = "DemoFileToS3.txt";
+        testS3(s3, fileName);
 //        testSQS(ec2.getCredentials());
 
 
@@ -57,7 +57,7 @@ public class Test {
     }
 
     // Test S3 - uploading a file
-    public static void testS3(AWSCredentialsProvider credentials, AmazonEC2 ec2, AmazonS3 s3, String fileName) throws Exception {
+    public static void testS3(S3Handler s3, String fileName) throws Exception {
         System.out.println("\n\n*** test S3 ***");
         String bucketName = null;
         String keyName = null;
@@ -65,13 +65,13 @@ public class Test {
         try {
 
             System.out.println("\nCreate a bucket");
-            bucketName = S3Handler.createBucket(credentials, s3, fileName);
+            bucketName = s3.createBucket(fileName);
 
             System.out.println("\nUpload file to S3");
-            keyName = S3Handler.uploadFileToS3(ec2, s3, bucketName, fileName);
+            keyName = s3.uploadFileToS3(bucketName, fileName);
 
             System.out.println("\nListing buckets");
-            for (Bucket bucket : s3.listBuckets()) {
+            for (Bucket bucket : s3.getS3().listBuckets()) {
                 System.out.println(" - " + bucket.getName());
             }
 
@@ -82,7 +82,7 @@ public class Test {
 //        displayTextInputStream(object.getObjectContent());
 
             System.out.println("\nListing objects");
-            ObjectListing objectListing = s3.listObjects(new ListObjectsRequest()
+            ObjectListing objectListing = s3.getS3().listObjects(new ListObjectsRequest()
                     .withBucketName(bucketName)
                     .withPrefix(""));
             for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
@@ -94,12 +94,12 @@ public class Test {
 
             if (keyName != null) {
                 System.out.println("\nDelete file from S3");
-                S3Handler.deleteFile(s3, bucketName, keyName);
+                s3.deleteFile(bucketName, keyName);
             }
 
             if (bucketName != null) {
                 System.out.println("\nDelete bucket");
-                S3Handler.deleteBucket(s3, bucketName);
+                s3.deleteBucket(bucketName);
             }
         }
     }
