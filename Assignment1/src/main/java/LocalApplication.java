@@ -49,9 +49,17 @@ public class LocalApplication {
             keyNames[i] = S3Handler.uploadFileToS3(ec2, s3, bucketName, fileName);
         }
 
+        // Duplicate bucketName to String[] the length of keyNames
+        String[] bucketNames = new String[n];
+        for (int i=0; i<n; i++) {
+            bucketNames[i] = bucketName;
+        }
 
         // TODO: Send a message to an SQS queue, stating the location of the files on S3 -
-        // the message is composted of a string
+        SQSHandler sqs = new SQSHandler(credentials);
+//        String s3Location =
+
+
         // TODO: Check an SQS queue for a message indicating the process is done and the response (the summary file) is available on S3.
         // TODO: Download the summary file from S3, and create an html file representing the results.
         // TODO: Send a termination message to the Manager if it was supplied as one of its input arguments.
