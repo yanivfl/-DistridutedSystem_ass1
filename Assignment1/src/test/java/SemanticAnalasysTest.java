@@ -11,13 +11,31 @@ import org.json.simple.parser.JSONParser;
 public class SemanticAnalasysTest {
 
     public static void main(String[] args) {
-        if(args.length < 1){
+        if (args.length < 1) {
             System.out.println("To activate this test, put file path as first argument.");
             System.out.println("for example: /home/yaniv/workSpace/dsps/reviews/B000EVOSE4");
             return;
         }
 
         String fileName = args[0];
+//        test1(fileName);
+        test2();
+
+
+    }
+
+    private static void test2() {
+        String text = "Obama 53 Israel";
+        try {
+            StanfordCoreNLP NERPipeline = SentimentAnalysisHandler.InitNERPipeline(); // get entity
+            SentimentAnalysisHandler.printEntities(NERPipeline, text);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public static void test1(String fileName) {
         JSONParser parser = new JSONParser();
         BufferedReader reader;
         try {
@@ -32,11 +50,11 @@ public class SemanticAnalasysTest {
 
                 System.out.println(jsonObject.toString());
                 JSONArray reviewsList = (JSONArray) jsonObject.get(Constants.REVIEWS);
-                for(Object review : reviewsList){
+                for (Object review : reviewsList) {
                     JSONObject jsonReview = (JSONObject) review;
                     String text = (String) jsonReview.get(Constants.TEXT);
                     System.out.println(text);
-                    System.out.println( "Sentiment Analysis output: " + SentimentAnalysisHandler.findSentiment(sentimentPipeline, text));
+                    System.out.println("Sentiment Analysis output: " + SentimentAnalysisHandler.findSentiment(sentimentPipeline, text));
                     SentimentAnalysisHandler.printEntities(NERPipeline, text);
                 }
 
@@ -46,10 +64,32 @@ public class SemanticAnalasysTest {
             reader.close();
         } catch (IOException e) {
             e.printStackTrace();
-        }  catch (Exception e) {
-        e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
-//
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        //
 
 //
 //        Object obj = parser.parse(new FileReader(fileName ));
@@ -66,8 +106,4 @@ public class SemanticAnalasysTest {
 //            while (iterator.hasNext()) {
 //                System.out.println(iterator.next());
 //            }
-
-
-    }
-}
 
