@@ -3,20 +3,21 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 public class LocationMessage {
-
     private String inBucket;
     private String inKey;
     private String outBucket;
     private String outKey;
     private long line;
+    private boolean isLast;
 
     /** Normal constructor */
-    public LocationMessage(String inBucket, String inKey, String outBucket, String outKey, long line) {
+    public LocationMessage(String inBucket, String inKey, String outBucket, String outKey, long line, boolean isLast) {
         this.inBucket = inBucket;
         this.inKey = inKey;
         this.outBucket = outBucket;
         this.outKey = outKey;
         this.line = line;
+        this.isLast = isLast;
     }
 
     /** Unique constructor - turn the string to LocationMessage (assumes the msg was JSON stringify */
@@ -29,6 +30,7 @@ public class LocationMessage {
         this.outBucket = (String) obj.get("outBucket");
         this.outKey = (String) obj.get("outKey");
         this.line = (Long) obj.get("line");
+        this.isLast = (Boolean) obj.get("isLast");
     }
 
     /** Turns the LocationMessage to string */
@@ -38,11 +40,8 @@ public class LocationMessage {
         obj.put("inKey", this.inKey);
         obj.put("outBucket", this.outBucket);
         obj.put("outKey", this.outKey);
-        obj.put("line", line);
-
-        String str = obj.toJSONString();
-        System.out.println(str);
-
+        obj.put("line", this.line);
+        obj.put("isLast", this.isLast);
         return obj.toJSONString();
     }
 
@@ -55,6 +54,7 @@ public class LocationMessage {
                 ", outBucket='" + outBucket + '\'' +
                 ", outKey='" + outKey + '\'' +
                 ", line=" + line +
+                ", isLast=" + isLast +
                 '}';
     }
 }
