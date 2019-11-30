@@ -41,8 +41,6 @@ public class LocationMessage {
         obj.put("line", line);
 
         String str = obj.toJSONString();
-        System.out.println(str);
-
         return obj.toJSONString();
     }
 

@@ -27,8 +27,8 @@ public class SemanticAnalasysTest {
     private static void test2() {
         String text = "Obama 53 Israel";
         try {
-            StanfordCoreNLP NERPipeline = SentimentAnalysisHandler.InitNERPipeline(); // get entity
-            SentimentAnalysisHandler.printEntities(NERPipeline, text);
+            SentimentAnalysisHandler sa = new SentimentAnalysisHandler();
+            sa.printEntities(text);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -39,8 +39,7 @@ public class SemanticAnalasysTest {
         JSONParser parser = new JSONParser();
         BufferedReader reader;
         try {
-            StanfordCoreNLP sentimentPipeline = SentimentAnalysisHandler.InitSentimentPipeline(); //get sentiment
-            StanfordCoreNLP NERPipeline = SentimentAnalysisHandler.InitNERPipeline(); // get entity
+            SentimentAnalysisHandler sa = new SentimentAnalysisHandler();
 
             reader = new BufferedReader(new FileReader(fileName));
             String line = reader.readLine();
@@ -54,8 +53,8 @@ public class SemanticAnalasysTest {
                     JSONObject jsonReview = (JSONObject) review;
                     String text = (String) jsonReview.get(Constants.TEXT);
                     System.out.println(text);
-                    System.out.println("Sentiment Analysis output: " + SentimentAnalysisHandler.findSentiment(sentimentPipeline, text));
-                    SentimentAnalysisHandler.printEntities(NERPipeline, text);
+                    System.out.println("Sentiment Analysis output: " + sa .findSentiment( text));
+                    sa .printEntities(text);
                 }
 
                 // read next line

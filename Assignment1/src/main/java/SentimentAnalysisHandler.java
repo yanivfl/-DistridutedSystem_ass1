@@ -12,29 +12,29 @@ import java.util.Properties;
 
 public class SentimentAnalysisHandler {
 
-    public static StanfordCoreNLP InitSentimentPipeline(){
+    private StanfordCoreNLP sentimentPipeline;
+    private StanfordCoreNLP NERPipeline;
+
+    public SentimentAnalysisHandler(){
         Properties props = new Properties();
         props.put("annotators", "tokenize, ssplit, parse, sentiment");
-        return new StanfordCoreNLP(props);
-    }
+        this.sentimentPipeline = new StanfordCoreNLP(props);
 
-    public static StanfordCoreNLP InitNERPipeline(){
-        Properties props = new Properties();
+        props = new Properties();
         props.put("annotators", "tokenize , ssplit, pos, lemma, ner");
-        return  new StanfordCoreNLP(props);
+        this.NERPipeline = new StanfordCoreNLP(props);
     }
-
 
     /*
      *Sentiment Analysis: Given a text find out its sentiment;
      *whether what the text is saying is positive/negative/neutral.
      *The tool gives a score between 0 = very negative up to 4 = very positive.
      */
-    public static int findSentiment(StanfordCoreNLP sentimentPipeline, String review) {
+    public int findSentiment(String review) {
         int mainSentiment = 0;
         if (review!= null && review.length() > 0) {
             int longest = 0;
-            Annotation annotation = sentimentPipeline.process(review);
+            Annotation annotation = this.sentimentPipeline.process(review);
             for (CoreMap sentence : annotation
                     .get(CoreAnnotations.SentencesAnnotation.class)) {
                 Tree tree = sentence
@@ -56,12 +56,12 @@ public class SentimentAnalysisHandler {
     Named Entity Extraction:
     Given a text extracts the entities of the text together with their entity type (e.g. Obama:Person)
     */
-    public static void printEntities(StanfordCoreNLP NERPipeline, String review){
+    public void printEntities(String review){
         // create an empty Annotation just with the given text
         Annotation document = new Annotation(review);
 
         // run all Annotators on this text
-        NERPipeline.annotate(document);
+        this.NERPipeline.annotate(document);
 
         // these are all the sentences in this document
         // a CoreMap is essentially a Map that uses class objects as keys and has values with custom types
