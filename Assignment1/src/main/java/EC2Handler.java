@@ -1,3 +1,5 @@
+import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.amazonaws.AmazonServiceException;
@@ -6,18 +8,12 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
-import com.amazonaws.services.ec2.model.Instance;
-import com.amazonaws.services.ec2.model.InstanceType;
-import com.amazonaws.services.ec2.model.RunInstancesRequest;
-import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
-import com.amazonaws.services.ec2.model.DescribeInstancesResult;
-import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
-import com.amazonaws.services.ec2.model.Reservation;
+import com.amazonaws.services.ec2.model.*;
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.ec2.model.DescribeTagsRequest;
-import com.amazonaws.services.ec2.model.Filter;
-import com.amazonaws.services.ec2.model.TagDescription;
-import com.amazonaws.services.ec2.model.DescribeTagsResult;
+import com.amazonaws.services.s3.model.ObjectTagging;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
+import com.amazonaws.services.ec2.model.Tag;
 
 
 
@@ -49,11 +45,28 @@ public class EC2Handler {
      * @param machineCount: number of machine instances to launch
      * @return List<Instance>: list of machines instances we launched
      */
-    public static List<Instance> launchEC2Instances(AmazonEC2 ec2, int machineCount) {
+    public static List<Instance> launchEC2Instances(AmazonEC2 ec2, int machineCount, String tagName) {
         try {
+            // launch instances
             RunInstancesRequest request = new RunInstancesRequest(Constants.AMI, machineCount, machineCount);
             request.setInstanceType(InstanceType.T2Micro.toString());
             List<Instance> instances = ec2.runInstances(request).getReservation().getInstances();
+
+            // tag instances with the given tag
+
+
+//            Tag tag = Tag.builder()
+//                    .key("Name")
+//                    .value(name)
+//                    .build();
+
+            for (Instance inst: instances) {
+
+            }
+
+
+
+
             System.out.println("Launch instances: " + instances);
             System.out.println("You launched: " + instances.size() + " instances");
             return instances;

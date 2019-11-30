@@ -39,11 +39,16 @@ public class S3Handler {
     }
 
     private static String getAwsBucketName(AWSCredentialsProvider credentials, String name){
-        String bucketName = credentials.getCredentials().getAWSAccessKeyId() + "-" + name.
-                replace('\\', '_').
-                replace('/', '_').
-                replace(':', '_');
+        String bucketName = credentials.getCredentials().getAWSAccessKeyId() + "a" + name.
+                replace('\\', 'a').
+                replace('/', 'a').
+                replace(':', 'a').
+                replace('.', 'a');
+
         bucketName = bucketName.toLowerCase();
+
+
+        System.out.println(bucketName);
         return bucketName;
     }
 
@@ -153,7 +158,7 @@ public class S3Handler {
         }
     }
 
-    public static void deleteFile(AmazonS3 s3, String bucketName, String key) throws IOException {
+    public static void deleteFile(AmazonS3 s3, String bucketName, String key) {
         try{
             s3.deleteObject(bucketName, key);
         } catch (AmazonServiceException ase) {
@@ -163,7 +168,7 @@ public class S3Handler {
         }
     }
 
-    public static void deleteBucket(AmazonS3 s3, String bucketName) throws IOException {
+    public static void deleteBucket(AmazonS3 s3, String bucketName) {
         try{
             s3.deleteBucket(bucketName);
         } catch (AmazonServiceException ase) {
@@ -190,7 +195,6 @@ public class S3Handler {
         System.out.println("Error Message: " + ace.getMessage());
     }
 
-
     /**
      * Displays the contents of the specified input stream as text.
      * @param input - The input stream to display as text.
@@ -206,6 +210,7 @@ public class S3Handler {
         }
         System.out.println();
     }
+
 
 }
 
