@@ -50,7 +50,8 @@ public class LocalApplication {
         }
 
 
-        // TODO: Send a message to an SQS queue, stating the location of the file on S3
+        // TODO: Send a message to an SQS queue, stating the location of the files on S3 -
+        // the message is composted of a string
         // TODO: Check an SQS queue for a message indicating the process is done and the response (the summary file) is available on S3.
         // TODO: Download the summary file from S3, and create an html file representing the results.
         // TODO: Send a termination message to the Manager if it was supplied as one of its input arguments.

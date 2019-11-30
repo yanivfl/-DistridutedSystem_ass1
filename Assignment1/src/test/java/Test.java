@@ -1,28 +1,10 @@
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.dynamodbv2.xspec.S;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
-import com.amazonaws.services.ec2.AmazonEC2;
-import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.Instance;
-import com.amazonaws.services.ec2.model.InstanceType;
-import com.amazonaws.services.ec2.model.RunInstancesRequest;
-import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
-import com.amazonaws.services.ec2.model.DescribeInstancesResult;
-import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
-import com.amazonaws.services.ec2.model.Reservation;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.ec2.model.DescribeTagsRequest;
-import com.amazonaws.services.ec2.model.Filter;
-import com.amazonaws.services.ec2.model.TagDescription;
-import com.amazonaws.services.ec2.model.DescribeTagsResult;
-import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 
 import java.io.BufferedReader;
@@ -48,6 +30,7 @@ public class Test {
 //        testInstances(ec2);
 //        String fileName = "DemoFileToS3.txt";
 //        testS3(credentials, ec2, s3, fileName);
+        testSQS(credentials);
 
 
     }
@@ -124,7 +107,7 @@ public class Test {
     }
 
 
-    public static void testSQS(AWSCredentialsProvider credentials, AmazonEC2 ec2) {
+    public static void testSQS(AWSCredentialsProvider credentials) {
 
         SQSHandler sqs = null;
         String myQueueURL = null;
@@ -145,13 +128,14 @@ public class Test {
             sqs.sendMessage(myQueueURL, "This is my message text.");
 
             System.out.println("Receiving messages from MyQueue.\n");
-            messages = sqs.receiveMessage(myQueueURL);
+            messages = sqs.receiveMessages(myQueueURL);
             for (Message message : messages) {
                 System.out.println("  Message");
                 System.out.println("    MessageId:     " + message.getMessageId());
                 System.out.println("    ReceiptHandle: " + message.getReceiptHandle());
                 System.out.println("    MD5OfBody:     " + message.getMD5OfBody());
                 System.out.println("    Body:          " + message.getBody());
+
                 for (Map.Entry<String, String> entry : message.getAttributes().entrySet()) {
                     System.out.println("  Attribute");
                     System.out.println("    Name:  " + entry.getKey());
