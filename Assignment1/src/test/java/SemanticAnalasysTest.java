@@ -89,9 +89,7 @@ public class SemanticAnalasysTest {
 
 
 
-        //
-
-//
+// doc
 //        Object obj = parser.parse(new FileReader(fileName ));
 //
 //        JSONObject jsonObject = (JSONObject) obj;

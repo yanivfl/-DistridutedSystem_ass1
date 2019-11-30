@@ -29,7 +29,7 @@ public class S3Handler {
     /**
      * initialize a connection with our S3
      * @param credentials - our credentials
-     * @return AmazonEC2: this is an S3 instance
+     * @return AmazonS3: this is an S3 instance
      */
     public static AmazonS3 connectS3(AWSCredentialsProvider credentials){
         return AmazonS3ClientBuilder.standard()
