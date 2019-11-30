@@ -11,7 +11,9 @@ public class SQSTest {
     public static void main(String[] args) {
 
         // initial configurations
-        AWSCredentialsProvider credentials = EC2Handler.getCredentials();
+        EC2Handler ec2 = new EC2Handler();
+
+//        AWSCredentialsProvider credentials = EC2Handler.getCredentials();
 
         SQSHandler sqs = null;
         String myQueueURL = null;
@@ -20,7 +22,7 @@ public class SQSTest {
 
         try {
             System.out.println("connect to SQS");
-            sqs = new SQSHandler(credentials);
+            sqs = new SQSHandler(ec2.getCredentials());
 
             System.out.println("Creating a new SQS queue called MyQueue.\n");
             myQueueURL = sqs.createSQSQueue("MyQueue1");

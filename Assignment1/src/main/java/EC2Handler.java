@@ -19,24 +19,27 @@ import com.amazonaws.services.ec2.model.Tag;
 
 public class EC2Handler {
 
-    /**
-     * Create our credentials file at ~/.aws/credentials
-     * @return AWS credentials object
-     */
-    public static AWSCredentialsProvider getCredentials() {
-        return new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
-    }
+    private AWSCredentialsProvider credentials;
+    private AmazonEC2 ec2;
 
     /**
-     * initialize a connection with our EC2
-     * @param credentials - our credentials
-     * @return AmazonEC2: this is an EC2 instance
+     * Create our credentials file at ~/.aws/credentials
+     * Initialize a connection with our EC2
      */
-    public static AmazonEC2 connectEC2(AWSCredentialsProvider credentials){
-        return  AmazonEC2ClientBuilder.standard()
+    public EC2Handler() {
+        this.credentials = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
+        this.ec2 = AmazonEC2ClientBuilder.standard()
                 .withCredentials(credentials)
                 .withRegion(Regions.US_EAST_1)
                 .build();
+    }
+
+    public AWSCredentialsProvider getCredentials() {
+        return credentials;
+    }
+
+    public AmazonEC2 getEc2() {
+        return ec2;
     }
 
     /**
@@ -45,12 +48,12 @@ public class EC2Handler {
      * @param machineCount: number of machine instances to launch
      * @return List<Instance>: list of machines instances we launched
      */
-    public static List<Instance> launchEC2Instances(AmazonEC2 ec2, int machineCount, String tagName) {
+    public List<Instance> launchEC2Instances(int machineCount, String tagName) {
         try {
             // launch instances
             RunInstancesRequest request = new RunInstancesRequest(Constants.AMI, machineCount, machineCount);
             request.setInstanceType(InstanceType.T2Micro.toString());
-            List<Instance> instances = ec2.runInstances(request).getReservation().getInstances();
+            List<Instance> instances = this.ec2.runInstances(request).getReservation().getInstances();
 
             // tag instances with the given tag
 
@@ -82,11 +85,11 @@ public class EC2Handler {
      * @param ec2Client: instace of EC2
      * @return boolean: true  iff instance was terminated
      */
-    public static boolean terminateEC2Instance(AmazonEC2 ec2Client, String instanecID) {
+    public boolean terminateEC2Instance(String instanecID) {
         try {
             TerminateInstancesRequest terminateInstancesRequest = new TerminateInstancesRequest()
                     .withInstanceIds(instanecID);
-            ec2Client.terminateInstances(terminateInstancesRequest)
+            this.ec2.terminateInstances(terminateInstancesRequest)
                     .getTerminatingInstances()
                     .get(0)
                     .getPreviousState()
@@ -106,20 +109,20 @@ public class EC2Handler {
      * params: ec2, tag
      * returns: True: There is an instance with the requested tag , False: otherwise
      */
-    public static boolean isTagExists(AmazonEC2 ec2, String tag) {
+    public boolean isTagExists(String tag) {
         boolean done = false;   // done = True - when finished going over all the instances.
         DescribeInstancesRequest instRequest = new DescribeInstancesRequest();
 
         try {
             while (!done) {
-                DescribeInstancesResult response = ec2.describeInstances(instRequest);
+                DescribeInstancesResult response = this.ec2.describeInstances(instRequest);
 
                 for (Reservation reservation : response.getReservations()) {
                     for (Instance instance : reservation.getInstances()) {
 
                         Filter filter = new Filter().withName("resource-id").withValues(instance.getInstanceId());
                         DescribeTagsRequest tagRequest = new DescribeTagsRequest().withFilters(filter);
-                        DescribeTagsResult tagResult = ec2.describeTags(tagRequest);
+                        DescribeTagsResult tagResult = this.ec2.describeTags(tagRequest);
                         List<TagDescription> tags = tagResult.getTags();
 
                         for (TagDescription tagDesc: tags) {
@@ -159,7 +162,7 @@ public class EC2Handler {
      * prints AmazonServiceException description
      * @param ase - AmazonServiceException
      */
-    private static void printASEException(AmazonServiceException ase) {
+    private void printASEException(AmazonServiceException ase) {
         System.out.println("Caught Exception: " + ase.getMessage());
         System.out.println("Response Status Code: " + ase.getStatusCode());
         System.out.println("Error Code: " + ase.getErrorCode());

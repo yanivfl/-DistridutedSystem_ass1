@@ -19,31 +19,29 @@ public class Test {
     public static void main(String[] args) throws Exception{
 
         // initial configurations
-        AWSCredentialsProvider credentials = EC2Handler.getCredentials();
-
         System.out.println("connect to EC2");
-        AmazonEC2 ec2 = EC2Handler.connectEC2(credentials);
+        EC2Handler ec2 = new EC2Handler();
 
         System.out.println("connect to S3");
-        AmazonS3 s3 = S3Handler.connectS3(credentials);
+        AmazonS3 s3 = S3Handler.connectS3(ec2.getCredentials());
 
 //        testInstances(ec2);
 //        String fileName = "DemoFileToS3.txt";
 //        testS3(credentials, ec2, s3, fileName);
-        testSQS(credentials);
+//        testSQS(ec2.getCredentials());
 
 
     }
 
     // Test EC2 instances - launch and terminate
-    public static void testInstances(AmazonEC2 ec2) throws Exception {
+    public static void testInstances(EC2Handler ec2) throws Exception {
         System.out.println("\n\n*** test EC2 ***");
 
-        List<Instance> myInstances = EC2Handler.launchEC2Instances(ec2, 1, "");
+        List<Instance> myInstances = ec2.launchEC2Instances(1, "");
         if(myInstances != null){
             Instance manager = myInstances.get(0);
             String instanceIdToTerminate = manager.getInstanceId();
-            EC2Handler.terminateEC2Instance(ec2, instanceIdToTerminate);
+            ec2.terminateEC2Instance(instanceIdToTerminate);
         }
     }
 
