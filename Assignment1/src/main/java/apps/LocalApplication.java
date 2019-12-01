@@ -44,12 +44,20 @@ public class LocalApplication {
         // TODO: run manager
 
         // start SQS queue for Clients -> apps.Manager (CM) messages
-        createQueueAndUpload(s3, sqs, "ClientsManagerQueue", Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,
+        createQueueAndUpload(s3, sqs, "Clients2ManagerQueue", Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,
                 Constants.CLIENTS_TO_MANAGER_QUEUE_KEY, true);
 
         // start SQS queue for apps.Manager -> Clients (MC) messages ("done" messages) - type long polling
-        createQueueAndUpload(s3, sqs, "ManagerClientsQueue", Constants.MANAGER_TO_CLIENTS_QUEUE_BUCKET,
+        createQueueAndUpload(s3, sqs, "Manager2ClientsQueue", Constants.MANAGER_TO_CLIENTS_QUEUE_BUCKET,
                 Constants.MANAGER_TO_CLIENTS_QUEUE_KEY, false);
+
+        // start SQS queue for Clients -> apps.Manager (CM) messages
+        createQueueAndUpload(s3, sqs, "Manager2WorkersQueue", Constants.MANAGER_TO_WORKERS_QUEUE_BUCKET,
+                Constants.MANAGER_TO_WORKERS_QUEUE_KEY, true);
+
+        // start SQS queue for apps.Manager -> Clients (MC) messages ("done" messages) - type long polling
+        createQueueAndUpload(s3, sqs, "Workers2ManagerQueue", Constants.WORKERS_TO_MANAGER_QUEUE_BUCKET,
+                Constants.WORKERS_TO_MANAGER_QUEUE_KEY, false);
 
     }
 
