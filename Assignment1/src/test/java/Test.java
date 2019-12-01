@@ -19,31 +19,29 @@ public class Test {
     public static void main(String[] args) throws Exception{
 
         // initial configurations
-        AWSCredentialsProvider credentials = EC2Handler.getCredentials();
-
         System.out.println("connect to EC2");
-        AmazonEC2 ec2 = EC2Handler.connectEC2(credentials);
+        EC2Handler ec2 = new EC2Handler();
 
         System.out.println("connect to S3");
-        AmazonS3 s3 = S3Handler.connectS3(credentials);
+        S3Handler s3 = new S3Handler(ec2);
 
 //        testInstances(ec2);
-//        String fileName = "DemoFileToS3.txt";
-//        testS3(credentials, ec2, s3, fileName);
-        testSQS(credentials);
+        String fileName = "DemoFileToS3.txt";
+        testS3(s3, fileName);
+//        testSQS(ec2.getCredentials());
 
 
     }
 
     // Test EC2 instances - launch and terminate
-    public static void testInstances(AmazonEC2 ec2) throws Exception {
+    public static void testInstances(EC2Handler ec2) throws Exception {
         System.out.println("\n\n*** test EC2 ***");
 
-        List<Instance> myInstances = EC2Handler.launchEC2Instances(ec2, 1, "");
+        List<Instance> myInstances = ec2.launchEC2Instances(1, "");
         if(myInstances != null){
             Instance manager = myInstances.get(0);
             String instanceIdToTerminate = manager.getInstanceId();
-            EC2Handler.terminateEC2Instance(ec2, instanceIdToTerminate);
+            ec2.terminateEC2Instance(instanceIdToTerminate);
         }
     }
 
@@ -59,7 +57,7 @@ public class Test {
     }
 
     // Test S3 - uploading a file
-    public static void testS3(AWSCredentialsProvider credentials, AmazonEC2 ec2, AmazonS3 s3, String fileName) throws Exception {
+    public static void testS3(S3Handler s3, String fileName) throws Exception {
         System.out.println("\n\n*** test S3 ***");
         String bucketName = null;
         String keyName = null;
@@ -67,13 +65,13 @@ public class Test {
         try {
 
             System.out.println("\nCreate a bucket");
-            bucketName = S3Handler.createBucket(credentials, s3, fileName);
+            bucketName = s3.createBucket(fileName);
 
             System.out.println("\nUpload file to S3");
-            keyName = S3Handler.uploadFileToS3(ec2, s3, bucketName, fileName);
+            keyName = s3.uploadFileToS3(bucketName, fileName);
 
             System.out.println("\nListing buckets");
-            for (Bucket bucket : s3.listBuckets()) {
+            for (Bucket bucket : s3.getS3().listBuckets()) {
                 System.out.println(" - " + bucket.getName());
             }
 
@@ -84,7 +82,7 @@ public class Test {
 //        displayTextInputStream(object.getObjectContent());
 
             System.out.println("\nListing objects");
-            ObjectListing objectListing = s3.listObjects(new ListObjectsRequest()
+            ObjectListing objectListing = s3.getS3().listObjects(new ListObjectsRequest()
                     .withBucketName(bucketName)
                     .withPrefix(""));
             for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
@@ -96,12 +94,12 @@ public class Test {
 
             if (keyName != null) {
                 System.out.println("\nDelete file from S3");
-                S3Handler.deleteFile(s3, bucketName, keyName);
+                s3.deleteFile(bucketName, keyName);
             }
 
             if (bucketName != null) {
                 System.out.println("\nDelete bucket");
-                S3Handler.deleteBucket(s3, bucketName);
+                s3.deleteBucket(bucketName);
             }
         }
     }
@@ -119,7 +117,7 @@ public class Test {
             sqs = new SQSHandler(credentials);
 
             System.out.println("Creating a new SQS queue called MyQueue.\n");
-            myQueueURL = sqs.createSQSQueue("MyQueue");
+            myQueueURL = sqs.createSQSQueue("MyQueue", true);
 
             System.out.println("Listing all queues in the account.\n");
             sqs.listQueues();
@@ -128,7 +126,7 @@ public class Test {
             sqs.sendMessage(myQueueURL, "This is my message text.");
 
             System.out.println("Receiving messages from MyQueue.\n");
-            messages = sqs.receiveMessages(myQueueURL);
+            messages = sqs.receiveMessages(myQueueURL, true);
             for (Message message : messages) {
                 System.out.println("  Message");
                 System.out.println("    MessageId:     " + message.getMessageId());

@@ -11,7 +11,9 @@ public class SQSTest {
     public static void main(String[] args) {
 
         // initial configurations
-        AWSCredentialsProvider credentials = EC2Handler.getCredentials();
+        EC2Handler ec2 = new EC2Handler();
+
+//        AWSCredentialsProvider credentials = EC2Handler.getCredentials();
 
         SQSHandler sqs = null;
         String myQueueURL = null;
@@ -20,39 +22,39 @@ public class SQSTest {
 
         try {
             System.out.println("connect to SQS");
-            sqs = new SQSHandler(credentials);
+            sqs = new SQSHandler(ec2.getCredentials());
 
             System.out.println("Creating a new SQS queue called MyQueue.\n");
-            myQueueURL = sqs.createSQSQueue("MyQueue1");
+            myQueueURL = sqs.createSQSQueue("MyQueue1", true);
 
-            System.out.println("Sending a location message to MyQueue.\n");
-            String [] bucks = {"buck1", "buck2"};
-            String [] keys = {"key1", "key2"};
-            String locationMsg = sqs.createS3LocationMessage(myQueueURL, bucks, keys);
-            sqs.sendMessage(myQueueURL, locationMsg);
-
-            System.out.println("Receiving messages from MyQueue.\n");
-            messages = sqs.receiveMessages(myQueueURL);
-            for (Message message : messages) {
-                System.out.println("  Message");
-                System.out.println("    MessageId:     " + message.getMessageId());
-                System.out.println("    ReceiptHandle: " + message.getReceiptHandle());
-                System.out.println("    MD5OfBody:     " + message.getMD5OfBody());
-                System.out.println("    Body:          " + message.getBody());
-                for (Map.Entry<String, String> entry : message.getAttributes().entrySet()) {
-                    System.out.println("  Attribute");
-                    System.out.println("    Name:  " + entry.getKey());
-                    System.out.println("    Value: " + entry.getValue());
-                }
-
-                String[][] parsedMsg = sqs.parseS3LocationMessages(message.getBody());
-                String[] bucketsMsg = parsedMsg[0];
-                String[] keysMsg = parsedMsg[1];
-
-                for (int i=0; i<bucketsMsg.length; i++) {
-                    System.out.println("Location " + i + ": "+ "bucket: " + bucketsMsg[i] + ", key: "+ keysMsg[i]);
-                }
-            }
+//            System.out.println("Sending a location message to MyQueue.\n");
+//            String [] bucks = {"buck1", "buck2"};
+//            String [] keys = {"key1", "key2"};
+//            String locationMsg = sqs.createS3LocationMessage(myQueueURL, bucks, keys);
+//            sqs.sendMessage(myQueueURL, locationMsg);
+//
+//            System.out.println("Receiving messages from MyQueue.\n");
+//            messages = sqs.receiveMessages(myQueueURL);
+//            for (Message message : messages) {
+//                System.out.println("  Message");
+//                System.out.println("    MessageId:     " + message.getMessageId());
+//                System.out.println("    ReceiptHandle: " + message.getReceiptHandle());
+//                System.out.println("    MD5OfBody:     " + message.getMD5OfBody());
+//                System.out.println("    Body:          " + message.getBody());
+//                for (Map.Entry<String, String> entry : message.getAttributes().entrySet()) {
+//                    System.out.println("  Attribute");
+//                    System.out.println("    Name:  " + entry.getKey());
+//                    System.out.println("    Value: " + entry.getValue());
+//                }
+//
+//                String[][] parsedMsg = sqs.parseS3LocationMessages(message.getBody());
+//                String[] bucketsMsg = parsedMsg[0];
+//                String[] keysMsg = parsedMsg[1];
+//
+//                for (int i=0; i<bucketsMsg.length; i++) {
+//                    System.out.println("Location " + i + ": "+ "bucket: " + bucketsMsg[i] + ", key: "+ keysMsg[i]);
+//                }
+//            }
         }
 
         catch (AmazonServiceException ase) {

@@ -1,0 +1,12 @@
+
+.DS_Store
+target
+
+
+
+
+.idea
+target/
+*.iml
+Assignment1/target/
+Assignment1/*.iml
