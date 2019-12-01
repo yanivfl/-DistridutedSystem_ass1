@@ -6,11 +6,18 @@ public class Constants {
     public static final String REVIEWS= "reviews";
     public static final String TEXT= "text";
 
-    public static String CLIENTS_MANAGER_QUEUE_BUCKET;
-    public static String CLIENTS_MANAGER_QUEUE_KEY;
+    public static final String CLIENTS_TO_MANAGER_QUEUE_BUCKET = "ClientsToManagerQueueBucket";
+    public static final String CLIENTS_TO_MANAGER_QUEUE_KEY = "ClientsToManagerQueueKey.txt";
 
-    public static String MANAGER_CLIENTS_QUEUE_BUCKET;
-    public static String MANAGER_CLIENTS_QUEUE_KEY;
+    public static final String MANAGER_TO_CLIENTS_QUEUE_BUCKET = "ManagerToClientsQueueBucket";
+    public static final String MANAGER_TO_CLIENTS_QUEUE_KEY = "ManagerToClientsQueueKey.txt";
+
+    public static final String WORKERS_TO_MANAGER_QUEUE_BUCKET = "WorkersToManagerQueueBucket";
+    public static final String WORKERS_TO_MANAGER_QUEUE_KEY = "WorkersToManagerQueueKey.txt";
+
+    public static final String MANAGER_TO_WORKERS_QUEUE_BUCKET = "ManagerToWorkersQueueBucket";
+    public static final String MANAGER_TO_WORKERS_QUEUE_KEY = "ManagerToWorkersQueueKey.txt";
+
 
 
     

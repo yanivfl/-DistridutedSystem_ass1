@@ -18,36 +18,31 @@ import java.util.UUID;
 
 public class LocalApplication {
 
+    public static void createQueueAndUpload(S3Handler s3, SQSHandler sqs, String queueName, String bucket, String key, boolean shortPolling) throws IOException {
+
+        // start SQS queue
+        String QueueURL = sqs.createSQSQueue(queueName, true);
+
+        // create a file containing the queue URL (file name is the key)
+        FileOutputStream CM_URLfile = new FileOutputStream(key);
+        CM_URLfile.write(QueueURL.getBytes());
+
+        // upload file to s3 - save the queue URL in a known location (known in the constants class)
+        s3.uploadFileToS3(bucket, key);
+    }
+
     public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) throws IOException {
 
         // TODO: understand how to run instances with a tag
         // TODO: run manager
 
         // start SQS queue for Clients -> Manager (CM) messages
-        String CM_QueueName = "ClientsManagerQueue";
-        String CM_QueueURL = sqs.createSQSQueue(CM_QueueName, true);
-
-        // create a file containing the client-manager queue URL
-        String CM_URLfileName = "ClientsManagerQueueURL.txt";
-        FileOutputStream CM_URLfile = new FileOutputStream(CM_URLfileName);
-        CM_URLfile.write(CM_QueueURL.getBytes());
-
-        // upload file to s3 - save the queue URL in a known location (known in the constants class)
-        Constants.CLIENTS_MANAGER_QUEUE_BUCKET = s3.getAwsBucketName("ClientsManagerQueueBucket");
-        Constants.CLIENTS_MANAGER_QUEUE_KEY = s3.uploadFileToS3(Constants.CLIENTS_MANAGER_QUEUE_BUCKET, CM_URLfileName);
+        createQueueAndUpload(s3, sqs, "ClientsManagerQueue", Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,
+                Constants.CLIENTS_TO_MANAGER_QUEUE_KEY, true);
 
         // start SQS queue for Manager -> Clients (MC) messages ("done" messages) - type long polling
-        String MC_QueueName = "ManagerClientsQueue";
-        String MC_QueueURL = sqs.createSQSQueue(MC_QueueName, false);
-
-        // create a file containing the client-manager queue URL
-        String MC_URLfileName = "ManagerClientsQueueURL.txt";
-        FileOutputStream MC_URLfile = new FileOutputStream(MC_URLfileName);
-        MC_URLfile.write(MC_QueueURL.getBytes());
-
-        // upload file to s3 - save the queue URL in a known location (known in the constants class)
-        Constants.MANAGER_CLIENTS_QUEUE_BUCKET = s3.getAwsBucketName("ManagerClientsQueueBucket");
-        Constants.MANAGER_CLIENTS_QUEUE_KEY = s3.uploadFileToS3(Constants.MANAGER_CLIENTS_QUEUE_BUCKET, CM_URLfileName);
+        createQueueAndUpload(s3, sqs, "ManagerClientsQueue", Constants.MANAGER_TO_CLIENTS_QUEUE_BUCKET,
+                Constants.MANAGER_TO_CLIENTS_QUEUE_KEY, false);
 
     }
 
@@ -91,17 +86,12 @@ public class LocalApplication {
 
         // Get the (Clients -> Manager), (Manager -> Clients) SQS queues URLs from s3
         S3Object CM_object = s3.getS3().getObject(new GetObjectRequest(
-                Constants.CLIENTS_MANAGER_QUEUE_BUCKET,Constants.CLIENTS_MANAGER_QUEUE_KEY));
+                Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,Constants.CLIENTS_TO_MANAGER_QUEUE_KEY));
         String CM_QueueURL = inputStreamToString(CM_object.getObjectContent());
 
         S3Object MC_object2 = s3.getS3().getObject(new GetObjectRequest(
-                Constants.CLIENTS_MANAGER_QUEUE_BUCKET,Constants.CLIENTS_MANAGER_QUEUE_KEY));
+                Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,Constants.CLIENTS_TO_MANAGER_QUEUE_KEY));
         String MC_QueueURL = inputStreamToString(MC_object2.getObjectContent());
-
-        // TODO: decide if this is necessary
-        // Send a first message to the Clients -> Manager SQS queue with this local application ID
-//        MessageID messageID = new MessageID(appID);
-//        sqs.sendMessage(CM_QueueURL, messageID.stringifyUsingJSON());
 
         // Upload all the input files to S3
         String[] keyNamesIn = new String[num_files];
