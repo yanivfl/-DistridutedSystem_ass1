@@ -1,3 +1,5 @@
+package apps;
+
 public class Constants {
 
     public static final String AMI = "ami-b66ed3de";

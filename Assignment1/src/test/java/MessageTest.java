@@ -1,6 +1,6 @@
-import messages.MessageBase;
-import messages.MessageClientToManager;
-import messages.MessageManagerToClient;
+import messages.Base;
+import messages.Client2Manager;
+import messages.Manager2Client;
 import org.json.simple.parser.ParseException;
 
 import java.util.UUID;
@@ -11,8 +11,8 @@ public class MessageTest {
 
 
         UUID id = UUID.randomUUID();
-        MessageBase msgLocation = new MessageClient2Manager("1", "2", "3", "4", 5, true, id);
-        MessageBase msgDone = new MessageManager2Client(true, id);
+        Base msgLocation = new Client2Manager("1", "2", "3", "4", 5, true, id);
+        Base msgDone = new Manager2Client(true, id);
 
         checkJSON(msgLocation);
         checkJSON(msgDone);
@@ -20,16 +20,16 @@ public class MessageTest {
 
     }
 
-    public static void checkJSON(MessageBase msg) throws ParseException {
+    public static void checkJSON(Base msg) throws ParseException {
 
         String msgStr = msg.stringifyUsingJSON();
-        MessageBase parsedStr;
+        Base parsedStr;
 
-        if (msg instanceof MessageClient2Manager) {
-            parsedStr = new MessageClient2Manager(msgStr);
+        if (msg instanceof Client2Manager) {
+            parsedStr = new Client2Manager(msgStr);
         }
         else {
-            parsedStr = new MessageManager2Client(msgStr);
+            parsedStr = new Manager2Client(msgStr);
         }
 
         System.out.println(parsedStr);

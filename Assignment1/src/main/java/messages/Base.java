@@ -1,6 +1,8 @@
-public abstract class MessageBase {
+package messages;
 
-    /** Turns the MessageClient2Manager to string */
+public abstract class Base {
+
+    /** Turns the messages.MessageClientToManager to string */
     public abstract String stringifyUsingJSON();
 
     /** This is for debug purpose */

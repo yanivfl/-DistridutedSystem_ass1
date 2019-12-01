@@ -1,7 +1,7 @@
 package apps;
 
-import messages.MessageClientToManager;
-import messages.MessageManagerToClient;
+import messages.Client2Manager;
+import messages.Manager2Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.sqs.model.Message;
@@ -116,7 +116,7 @@ public class LocalApplication {
 
         // Send a message to the (Clients -> apps.Manager) SQS queue, stating the location of the files on S3
         for (int i=0; i<num_files; i++) {
-            MessageClientToManager messageClientToManager = new MessageClientToManager(bucketName, keyNamesIn[i], bucketName, keyNamesOut[i], -1, terminate, appID);
+            Client2Manager messageClientToManager = new Client2Manager(bucketName, keyNamesIn[i], bucketName, keyNamesOut[i], -1, terminate, appID);
             sqs.sendMessage(CM_QueueURL, messageClientToManager.stringifyUsingJSON());
         }
 
@@ -126,7 +126,7 @@ public class LocalApplication {
         while (!done) {
             List<Message> doneMessages = sqs.receiveMessages(MC_QueueURL, false);
             for (Message msg: doneMessages) {
-                MessageManagerToClient msgDone = new MessageManagerToClient(msg.getBody());
+                Manager2Client msgDone = new Manager2Client(msg.getBody());
                 if (msgDone.isDone() && msgDone.getDoneID().equals(appID))
                     done = true;
             }

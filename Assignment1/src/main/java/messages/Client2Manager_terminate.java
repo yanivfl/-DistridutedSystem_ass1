@@ -1,22 +1,26 @@
+package messages;
+
+
+import apps.Constants;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.util.UUID;
 
-public class MessageClient2Manager_terminate extends MessageBase {
+public class Client2Manager_terminate extends Base {
 
     private Constants.TAGS tag;
     private UUID senderID;
 
     /** Normal constructor */
-    public MessageClient2Manager_terminate(UUID senderID) {
+    public Client2Manager_terminate(UUID senderID) {
         this.tag = Constants.TAGS.CLIENT_2_MANAGER_terminate;
         this.senderID = senderID;
     }
 
-    /** Unique constructor - turn the string to MessageClient2Manager_terminate (assumes the msg was JSON stringify) */
-    public MessageClient2Manager_terminate(String msg) throws ParseException {
+    /** Unique constructor - turn the string to messages.MessageClient2Manager_terminate (assumes the msg was JSON stringify) */
+    public Client2Manager_terminate(String msg) throws ParseException {
         JSONParser parser = new JSONParser();
         JSONObject obj = (JSONObject) parser.parse(msg);
 
