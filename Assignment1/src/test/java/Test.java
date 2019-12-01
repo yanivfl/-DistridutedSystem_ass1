@@ -1,11 +1,12 @@
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.ec2.AmazonEC2;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.sqs.model.Message;
+import handlers.EC2Handler;
+import handlers.S3Handler;
+import handlers.SQSHandler;
 
 import java.io.BufferedReader;
 import java.io.InputStream;

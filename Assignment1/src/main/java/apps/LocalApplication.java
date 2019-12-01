@@ -1,6 +1,13 @@
+package apps;
+
+import messages.MessageClientToManager;
+import messages.MessageManagerToClient;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.sqs.model.Message;
+import handlers.EC2Handler;
+import handlers.S3Handler;
+import handlers.SQSHandler;
 
 import java.io.*;
 import java.util.List;
@@ -8,12 +15,12 @@ import java.util.UUID;
 
 
 /** From the assignment description:
- * 1. Checks if a Manager node is active on the EC2 cloud. If it is not, the application will start the manager node.
+ * 1. Checks if a apps.Manager node is active on the EC2 cloud. If it is not, the application will start the manager node.
  * 2. Uploads the file to S3.
  * 3. Sends a message to an SQS queue, stating the location of the file on S3
  * 4. Checks an SQS queue for a message indicating the process is done and the response (the summary file) is available on S3.
  * 5. Downloads the summary file from S3, and create an html file representing the results.
- * 6. Sends a termination message to the Manager if it was supplied as one of its input arguments.
+ * 6. Sends a termination message to the apps.Manager if it was supplied as one of its input arguments.
  */
 
 public class LocalApplication {
@@ -36,11 +43,11 @@ public class LocalApplication {
         // TODO: understand how to run instances with a tag
         // TODO: run manager
 
-        // start SQS queue for Clients -> Manager (CM) messages
+        // start SQS queue for Clients -> apps.Manager (CM) messages
         createQueueAndUpload(s3, sqs, "ClientsManagerQueue", Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,
                 Constants.CLIENTS_TO_MANAGER_QUEUE_KEY, true);
 
-        // start SQS queue for Manager -> Clients (MC) messages ("done" messages) - type long polling
+        // start SQS queue for apps.Manager -> Clients (MC) messages ("done" messages) - type long polling
         createQueueAndUpload(s3, sqs, "ManagerClientsQueue", Constants.MANAGER_TO_CLIENTS_QUEUE_BUCKET,
                 Constants.MANAGER_TO_CLIENTS_QUEUE_KEY, false);
 
@@ -75,7 +82,7 @@ public class LocalApplication {
         else
             n =Integer.parseInt(args[args.length-1]);
 
-        // TODO - Check if a Manager node is active on the EC2 cloud. If it is not, the application will start the manager node
+        // TODO - Check if a apps.Manager node is active on the EC2 cloud. If it is not, the application will start the manager node
         if (!ec2.isTagExists(Constants.TAG_MANAGER)) {
             startManager(ec2, s3, sqs);
         }
@@ -84,7 +91,7 @@ public class LocalApplication {
         UUID appID = UUID.randomUUID();
         String bucketName = s3.createBucket(appID.toString());
 
-        // Get the (Clients -> Manager), (Manager -> Clients) SQS queues URLs from s3
+        // Get the (Clients -> apps.Manager), (apps.Manager -> Clients) SQS queues URLs from s3
         S3Object CM_object = s3.getS3().getObject(new GetObjectRequest(
                 Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,Constants.CLIENTS_TO_MANAGER_QUEUE_KEY));
         String CM_QueueURL = inputStreamToString(CM_object.getObjectContent());
@@ -107,13 +114,13 @@ public class LocalApplication {
             keyNamesOut[i] = s3.getAwsFileName(fileName) + "out";
         }
 
-        // Send a message to the (Clients -> Manager) SQS queue, stating the location of the files on S3
+        // Send a message to the (Clients -> apps.Manager) SQS queue, stating the location of the files on S3
         for (int i=0; i<num_files; i++) {
             MessageClientToManager messageClientToManager = new MessageClientToManager(bucketName, keyNamesIn[i], bucketName, keyNamesOut[i], -1, terminate, appID);
             sqs.sendMessage(CM_QueueURL, messageClientToManager.stringifyUsingJSON());
         }
 
-        // Check on the (Manager -> Clients) SQS queue for a message indicating the process is done and the response
+        // Check on the (apps.Manager -> Clients) SQS queue for a message indicating the process is done and the response
         // (the summary file) is available on S3.
         boolean done = false;
         while (!done) {
@@ -128,7 +135,7 @@ public class LocalApplication {
         // TODO: Download the summary file from S3, and create an html file representing the results.
         
 
-        // TODO: Send a termination message to the Manager if it was supplied as one of its input arguments.
+        // TODO: Send a termination message to the apps.Manager if it was supplied as one of its input arguments.
 
 
         // delete all input files from S3 and the bucket for this local application

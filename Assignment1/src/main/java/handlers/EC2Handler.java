@@ -1,7 +1,10 @@
+package handlers;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import apps.Constants;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -44,7 +47,7 @@ public class EC2Handler {
 
     /**
      * launch machine instances as requested in machineCount
-     * @param ec2: instance of EC2
+     * @param tagName: instance of EC2
      * @param machineCount: number of machine instances to launch
      * @return List<Instance>: list of machines instances we launched
      */

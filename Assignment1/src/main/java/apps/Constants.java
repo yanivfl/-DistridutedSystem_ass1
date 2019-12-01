@@ -1,3 +1,5 @@
+package apps;
+
 public class Constants {
 
     public static final String AMI = "ami-b66ed3de";
@@ -19,7 +21,7 @@ public class Constants {
     public static final String MANAGER_TO_WORKERS_QUEUE_KEY = "ManagerToWorkersQueueKey.txt";
 
     public enum TAGS {
-        CLEINT_2_MANAGER, MANAGER_2_CLIENT, MANAGER_2_WORKER, WORKER_2_MANAGER;
+        CLIENT_2_MANAGER, MANAGER_2_CLIENT, MANAGER_2_WORKER, WORKER_2_MANAGER;
     }
 
     public static final String[] HTML_COLORS = new String[]{"dark red", "red", "black", "light green", "dark green"};

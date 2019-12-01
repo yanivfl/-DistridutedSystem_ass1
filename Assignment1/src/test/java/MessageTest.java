@@ -1,3 +1,6 @@
+import messages.MessageBase;
+import messages.MessageClientToManager;
+import messages.MessageManagerToClient;
 import org.json.simple.parser.ParseException;
 
 import java.util.UUID;

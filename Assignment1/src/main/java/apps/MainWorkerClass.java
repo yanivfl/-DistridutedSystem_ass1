@@ -1,3 +1,5 @@
+package apps;
+
 public class MainWorkerClass {
 
     public static void main(String[] args) throws Exception {

@@ -1,10 +1,10 @@
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.sqs.model.Message;
+import handlers.EC2Handler;
+import handlers.SQSHandler;
 
 import java.util.List;
-import java.util.Map;
 
 public class SQSTest {
 
@@ -13,7 +13,7 @@ public class SQSTest {
         // initial configurations
         EC2Handler ec2 = new EC2Handler();
 
-//        AWSCredentialsProvider credentials = EC2Handler.getCredentials();
+//        AWSCredentialsProvider credentials = handlers.EC2Handler.getCredentials();
 
         SQSHandler sqs = null;
         String myQueueURL = null;
