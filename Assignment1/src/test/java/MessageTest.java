@@ -11,8 +11,8 @@ public class MessageTest {
 
 
         UUID id = UUID.randomUUID();
-        MessageBase msgLocation = new MessageClientToManager("1", "2", "3", "4", 5, true, id);
-        MessageBase msgDone = new MessageManagerToClient(true, id);
+        MessageBase msgLocation = new MessageClient2Manager("1", "2", "3", "4", 5, true, id);
+        MessageBase msgDone = new MessageManager2Client(true, id);
 
         checkJSON(msgLocation);
         checkJSON(msgDone);
@@ -25,11 +25,11 @@ public class MessageTest {
         String msgStr = msg.stringifyUsingJSON();
         MessageBase parsedStr;
 
-        if (msg instanceof MessageClientToManager) {
-            parsedStr = new MessageClientToManager(msgStr);
+        if (msg instanceof MessageClient2Manager) {
+            parsedStr = new MessageClient2Manager(msgStr);
         }
         else {
-            parsedStr = new MessageManagerToClient(msgStr);
+            parsedStr = new MessageManager2Client(msgStr);
         }
 
         System.out.println(parsedStr);
