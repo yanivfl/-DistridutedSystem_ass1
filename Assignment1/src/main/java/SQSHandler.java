@@ -38,8 +38,15 @@ public class SQSHandler {
      * params: sqs, queueName
      * returns: the new queue's URL
      */
-    public String createSQSQueue(String queueName) {
-        CreateQueueRequest createQueueRequest = new CreateQueueRequest("MyQueue"+ queueName);
+    public String createSQSQueue(String queueName, boolean shortPolling) {
+        CreateQueueRequest createQueueRequest;
+
+        if (shortPolling)
+            createQueueRequest = new CreateQueueRequest("MyQueue"+ queueName);
+        else
+            createQueueRequest = new CreateQueueRequest("MyQueue"+ queueName).
+                    addAttributesEntry("ReceiveMessageWaitTimeSeconds", "20");
+
         return this.sqs.createQueue(createQueueRequest).getQueueUrl();
     }
 
@@ -51,8 +58,14 @@ public class SQSHandler {
         this.sqs.sendMessage(new SendMessageRequest(myQueueUrl, messageBody));
     }
 
-    public List<Message> receiveMessages(String myQueueUrl) {
-        ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl);
+    public List<Message> receiveMessages(String myQueueUrl, boolean shortPolling) {
+        ReceiveMessageRequest receiveMessageRequest;
+
+        if (shortPolling)
+            receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl);
+        else
+            receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl).withWaitTimeSeconds(40);
+
         return this.sqs.receiveMessage(receiveMessageRequest).getMessages();
     }
 

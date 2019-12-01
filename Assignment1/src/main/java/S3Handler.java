@@ -45,7 +45,7 @@ public class S3Handler {
         return s3;
     }
 
-    private String getAwsBucketName(String name){
+    public String getAwsBucketName(String name){
         String bucketName = this.ec2.getCredentials().getCredentials().getAWSAccessKeyId() + "a" + name.
                 replace('\\', 'a').
                 replace('/', 'a').
@@ -56,7 +56,7 @@ public class S3Handler {
         return bucketName;
     }
 
-    private String getAwsFileName(String FileName){
+    public String getAwsFileName(String FileName){
         String fileName = FileName.
                 replace('\\', '_').
                 replace('/', '_').

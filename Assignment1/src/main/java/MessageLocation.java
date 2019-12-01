@@ -2,6 +2,8 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import java.util.UUID;
+
 public class MessageLocation extends MessageBase {
 
     private String inBucket;
@@ -10,15 +12,18 @@ public class MessageLocation extends MessageBase {
     private String outKey;
     private long line;
     private boolean terminate;
+    private UUID senderID;
 
     /** Normal constructor */
-    public MessageLocation(String inBucket, String inKey, String outBucket, String outKey, long line, boolean terminate) {
+    public MessageLocation(String inBucket, String inKey, String outBucket, String outKey, long line,
+                           boolean terminate, UUID senderID) {
         this.inBucket = inBucket;
         this.inKey = inKey;
         this.outBucket = outBucket;
         this.outKey = outKey;
         this.line = line;
         this.terminate = terminate;
+        this.senderID = senderID;
     }
 
     /** Unique constructor - turn the string to MessageLocation (assumes the msg was JSON stringify */
@@ -32,6 +37,7 @@ public class MessageLocation extends MessageBase {
         this.outKey = (String) obj.get("outKey");
         this.line = (Long) obj.get("line");
         this.terminate = (Boolean) obj.get("terminate");
+        this.senderID = UUID.fromString((String) obj.get("id"));
     }
 
     /** Turns the MessageLocation to string */
@@ -43,19 +49,21 @@ public class MessageLocation extends MessageBase {
         obj.put("outKey", this.outKey);
         obj.put("line", this.line);
         obj.put("terminate", this.terminate);
+        obj.put("senderID", this.senderID);
         return obj.toJSONString();
     }
 
     /** This is for debug purpose */
     @Override
     public String toString() {
-        return "MessageLocation {" +
+        return "MessageLocation{" +
                 "inBucket='" + inBucket + '\'' +
                 ", inKey='" + inKey + '\'' +
                 ", outBucket='" + outBucket + '\'' +
                 ", outKey='" + outKey + '\'' +
                 ", line=" + line +
                 ", terminate=" + terminate +
+                ", senderID=" + senderID +
                 '}';
     }
 }

@@ -25,7 +25,7 @@ public class SQSTest {
             sqs = new SQSHandler(ec2.getCredentials());
 
             System.out.println("Creating a new SQS queue called MyQueue.\n");
-            myQueueURL = sqs.createSQSQueue("MyQueue1");
+            myQueueURL = sqs.createSQSQueue("MyQueue1", true);
 
 //            System.out.println("Sending a location message to MyQueue.\n");
 //            String [] bucks = {"buck1", "buck2"};

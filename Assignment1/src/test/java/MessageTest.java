@@ -1,12 +1,14 @@
 import org.json.simple.parser.ParseException;
 
+import java.util.UUID;
+
 public class MessageTest {
 
     public static void main(String[] args) throws ParseException {
 
 
 
-        MessageBase msgLocation = new MessageLocation("1", "2", "3", "4", 5, true);
+        MessageBase msgLocation = new MessageLocation("1", "2", "3", "4", 5, true, UUID.randomUUID());
         MessageBase msgDone = new MessageDone(true);
 
         checkJSON(msgLocation);

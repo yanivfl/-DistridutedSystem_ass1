@@ -117,7 +117,7 @@ public class Test {
             sqs = new SQSHandler(credentials);
 
             System.out.println("Creating a new SQS queue called MyQueue.\n");
-            myQueueURL = sqs.createSQSQueue("MyQueue");
+            myQueueURL = sqs.createSQSQueue("MyQueue", true);
 
             System.out.println("Listing all queues in the account.\n");
             sqs.listQueues();
@@ -126,7 +126,7 @@ public class Test {
             sqs.sendMessage(myQueueURL, "This is my message text.");
 
             System.out.println("Receiving messages from MyQueue.\n");
-            messages = sqs.receiveMessages(myQueueURL);
+            messages = sqs.receiveMessages(myQueueURL, true);
             for (Message message : messages) {
                 System.out.println("  Message");
                 System.out.println("    MessageId:     " + message.getMessageId());
