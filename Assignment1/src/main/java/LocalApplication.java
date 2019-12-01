@@ -109,8 +109,8 @@ public class LocalApplication {
 
         // Send a message to the (Clients -> Manager) SQS queue, stating the location of the files on S3
         for (int i=0; i<num_files; i++) {
-            MessageLocation messageLocation = new MessageLocation(bucketName, keyNamesIn[i], bucketName, keyNamesOut[i], -1, terminate, appID);
-            sqs.sendMessage(CM_QueueURL, messageLocation.stringifyUsingJSON());
+            MessageClientToManager messageClientToManager = new MessageClientToManager(bucketName, keyNamesIn[i], bucketName, keyNamesOut[i], -1, terminate, appID);
+            sqs.sendMessage(CM_QueueURL, messageClientToManager.stringifyUsingJSON());
         }
 
         // Check on the (Manager -> Clients) SQS queue for a message indicating the process is done and the response
@@ -119,7 +119,7 @@ public class LocalApplication {
         while (!done) {
             List<Message> doneMessages = sqs.receiveMessages(MC_QueueURL, false);
             for (Message msg: doneMessages) {
-                MessageDone msgDone = new MessageDone(msg.getBody());
+                MessageManagerToClient msgDone = new MessageManagerToClient(msg.getBody());
                 if (msgDone.isDone() && msgDone.getDoneID().equals(appID))
                     done = true;
             }

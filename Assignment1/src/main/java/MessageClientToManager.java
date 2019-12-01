@@ -4,7 +4,7 @@ import org.json.simple.parser.ParseException;
 
 import java.util.UUID;
 
-public class MessageLocation extends MessageBase {
+public class MessageClientToManager extends MessageBase {
 
     private String inBucket;
     private String inKey;
@@ -15,8 +15,8 @@ public class MessageLocation extends MessageBase {
     private UUID senderID;
 
     /** Normal constructor */
-    public MessageLocation(String inBucket, String inKey, String outBucket, String outKey, long line,
-                           boolean terminate, UUID senderID) {
+    public MessageClientToManager(String inBucket, String inKey, String outBucket, String outKey, long line,
+                                  boolean terminate, UUID senderID) {
         this.inBucket = inBucket;
         this.inKey = inKey;
         this.outBucket = outBucket;
@@ -26,8 +26,8 @@ public class MessageLocation extends MessageBase {
         this.senderID = senderID;
     }
 
-    /** Unique constructor - turn the string to MessageLocation (assumes the msg was JSON stringify) */
-    public MessageLocation(String msg) throws ParseException {
+    /** Unique constructor - turn the string to MessageClientToManager (assumes the msg was JSON stringify) */
+    public MessageClientToManager(String msg) throws ParseException {
         JSONParser parser = new JSONParser();
         JSONObject obj = (JSONObject) parser.parse(msg);
 
@@ -40,7 +40,7 @@ public class MessageLocation extends MessageBase {
         this.senderID = UUID.fromString((String) obj.get("senderID"));
     }
 
-    /** Turns the MessageLocation to string */
+    /** Turns the MessageClientToManager to string */
     public String stringifyUsingJSON() {
         JSONObject obj = new JSONObject();
         obj.put("inBucket", this.inBucket);
@@ -56,7 +56,7 @@ public class MessageLocation extends MessageBase {
     /** This is for debug purpose */
     @Override
     public String toString() {
-        return "MessageLocation{" +
+        return "MessageClientToManager{" +
                 "inBucket='" + inBucket + '\'' +
                 ", inKey='" + inKey + '\'' +
                 ", outBucket='" + outBucket + '\'' +
