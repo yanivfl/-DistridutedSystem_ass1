@@ -2,26 +2,27 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-public class LocationMessage {
+public class MessageLocation extends MessageBase {
+
     private String inBucket;
     private String inKey;
     private String outBucket;
     private String outKey;
     private long line;
-    private boolean isLast;
+    private boolean terminate;
 
     /** Normal constructor */
-    public LocationMessage(String inBucket, String inKey, String outBucket, String outKey, long line, boolean isLast) {
+    public MessageLocation(String inBucket, String inKey, String outBucket, String outKey, long line, boolean terminate) {
         this.inBucket = inBucket;
         this.inKey = inKey;
         this.outBucket = outBucket;
         this.outKey = outKey;
         this.line = line;
-        this.isLast = isLast;
+        this.terminate = terminate;
     }
 
-    /** Unique constructor - turn the string to LocationMessage (assumes the msg was JSON stringify */
-    public LocationMessage(String msg) throws ParseException {
+    /** Unique constructor - turn the string to MessageLocation (assumes the msg was JSON stringify */
+    public MessageLocation(String msg) throws ParseException {
         JSONParser parser = new JSONParser();
         JSONObject obj = (JSONObject) parser.parse(msg);
 
@@ -30,10 +31,10 @@ public class LocationMessage {
         this.outBucket = (String) obj.get("outBucket");
         this.outKey = (String) obj.get("outKey");
         this.line = (Long) obj.get("line");
-        this.isLast = (Boolean) obj.get("isLast");
+        this.terminate = (Boolean) obj.get("terminate");
     }
 
-    /** Turns the LocationMessage to string */
+    /** Turns the MessageLocation to string */
     public String stringifyUsingJSON() {
         JSONObject obj = new JSONObject();
         obj.put("inBucket", this.inBucket);
@@ -41,20 +42,20 @@ public class LocationMessage {
         obj.put("outBucket", this.outBucket);
         obj.put("outKey", this.outKey);
         obj.put("line", this.line);
-        obj.put("isLast", this.isLast);
+        obj.put("terminate", this.terminate);
         return obj.toJSONString();
     }
 
     /** This is for debug purpose */
     @Override
     public String toString() {
-        return "LocationMessage{" +
+        return "MessageLocation {" +
                 "inBucket='" + inBucket + '\'' +
                 ", inKey='" + inKey + '\'' +
                 ", outBucket='" + outBucket + '\'' +
                 ", outKey='" + outKey + '\'' +
                 ", line=" + line +
-                ", isLast=" + isLast +
+                ", terminate=" + terminate +
                 '}';
     }
 }

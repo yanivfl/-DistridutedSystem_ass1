@@ -1,10 +1,3 @@
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.dynamodbv2.xspec.S;
-import com.amazonaws.services.ec2.AmazonEC2;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.*;
-import java.io.File;
-import java.util.List;
 import java.util.UUID;
 
 
@@ -56,8 +49,8 @@ public class LocalApplication {
         String appQueueURL = sqs.createSQSQueue(queueName);
 
         for (String keyName: keyNames) {
-            LocationMessage locationMessage = new LocationMessage(bucketName, keyName, null, null, -1, false);
-            sqs.sendMessage(appQueueURL, locationMessage.stringifyUsingJSON());
+            MessageLocation messageLocation = new MessageLocation(bucketName, keyName, null, null, -1, false);
+            sqs.sendMessage(appQueueURL, messageLocation.stringifyUsingJSON());
         }
 
         // TODO: Check an SQS queue for a message indicating the process is done and the response (the summary file) is available on S3.
