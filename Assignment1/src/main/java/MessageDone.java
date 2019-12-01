@@ -36,7 +36,7 @@ public class MessageDone  extends MessageBase {
     public String stringifyUsingJSON() {
         JSONObject obj = new JSONObject();
         obj.put("done", this.done);
-        obj.put("doneID", this.doneID);
+        obj.put("doneID", this.doneID.toString());
         return obj.toJSONString();
     }
 

@@ -7,9 +7,9 @@ public class MessageTest {
     public static void main(String[] args) throws ParseException {
 
 
-
-        MessageBase msgLocation = new MessageLocation("1", "2", "3", "4", 5, true, UUID.randomUUID());
-        MessageBase msgDone = new MessageDone(true);
+        UUID id = UUID.randomUUID();
+        MessageBase msgLocation = new MessageLocation("1", "2", "3", "4", 5, true, id);
+        MessageBase msgDone = new MessageDone(true, id);
 
         checkJSON(msgLocation);
         checkJSON(msgDone);

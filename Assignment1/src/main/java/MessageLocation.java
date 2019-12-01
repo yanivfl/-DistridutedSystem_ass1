@@ -26,7 +26,7 @@ public class MessageLocation extends MessageBase {
         this.senderID = senderID;
     }
 
-    /** Unique constructor - turn the string to MessageLocation (assumes the msg was JSON stringify */
+    /** Unique constructor - turn the string to MessageLocation (assumes the msg was JSON stringify) */
     public MessageLocation(String msg) throws ParseException {
         JSONParser parser = new JSONParser();
         JSONObject obj = (JSONObject) parser.parse(msg);
@@ -37,7 +37,7 @@ public class MessageLocation extends MessageBase {
         this.outKey = (String) obj.get("outKey");
         this.line = (Long) obj.get("line");
         this.terminate = (Boolean) obj.get("terminate");
-        this.senderID = UUID.fromString((String) obj.get("id"));
+        this.senderID = UUID.fromString((String) obj.get("senderID"));
     }
 
     /** Turns the MessageLocation to string */
@@ -49,7 +49,7 @@ public class MessageLocation extends MessageBase {
         obj.put("outKey", this.outKey);
         obj.put("line", this.line);
         obj.put("terminate", this.terminate);
-        obj.put("senderID", this.senderID);
+        obj.put("senderID", this.senderID.toString());
         return obj.toJSONString();
     }
 
