@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public class MessageClientToManager extends MessageBase {
 
+    private Constants.TAGS tag;
     private String inBucket;
     private String inKey;
     private String outBucket;
@@ -17,6 +18,7 @@ public class MessageClientToManager extends MessageBase {
     /** Normal constructor */
     public MessageClientToManager(String inBucket, String inKey, String outBucket, String outKey, long line,
                                   boolean terminate, UUID senderID) {
+        this.tag = Constants.TAGS.CLIENT_2_MANAGER;
         this.inBucket = inBucket;
         this.inKey = inKey;
         this.outBucket = outBucket;
@@ -31,6 +33,10 @@ public class MessageClientToManager extends MessageBase {
         JSONParser parser = new JSONParser();
         JSONObject obj = (JSONObject) parser.parse(msg);
 
+        this.tag = Constants.TAGS.valueOf((String) obj.get("tag"));
+        if (this.tag != Constants.TAGS.CLIENT_2_MANAGER)
+            throw new RuntimeException("Got an unexpected message");
+
         this.inBucket = (String) obj.get("inBucket");
         this.inKey = (String) obj.get("inKey");
         this.outBucket = (String) obj.get("outBucket");
@@ -43,6 +49,7 @@ public class MessageClientToManager extends MessageBase {
     /** Turns the MessageClientToManager to string */
     public String stringifyUsingJSON() {
         JSONObject obj = new JSONObject();
+        obj.put("tag", this.tag.toString());
         obj.put("inBucket", this.inBucket);
         obj.put("inKey", this.inKey);
         obj.put("outBucket", this.outBucket);

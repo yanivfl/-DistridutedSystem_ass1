@@ -18,6 +18,10 @@ public class Constants {
     public static final String MANAGER_TO_WORKERS_QUEUE_BUCKET = "ManagerToWorkersQueueBucket";
     public static final String MANAGER_TO_WORKERS_QUEUE_KEY = "ManagerToWorkersQueueKey.txt";
 
+    public enum TAGS {
+        CLIENT_2_MANAGER, MANAGER_2_CLIENT;
+    }
+
 
 
     
