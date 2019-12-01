@@ -4,21 +4,21 @@ import org.json.simple.parser.ParseException;
 
 import java.util.UUID;
 
-public class MessageManagerToClient extends MessageBase {
+public class MessageManager2Client extends MessageBase {
 
     private Constants.TAGS tag;
     private boolean done;
     private UUID doneID;
 
     /** Normal constructor */
-    public MessageManagerToClient(boolean done, UUID doneID) {
+    public MessageManager2Client(boolean done, UUID doneID) {
         this.tag = Constants.TAGS.MANAGER_2_CLIENT;
         this.done = done;
         this.doneID = doneID;
     }
 
-    /** Unique constructor - turn the string to MessageManagerToClient (assumes the msg was JSON stringify */
-    public MessageManagerToClient(String msg) throws ParseException {
+    /** Unique constructor - turn the string to MessageManager2Client (assumes the msg was JSON stringify */
+    public MessageManager2Client(String msg) throws ParseException {
         JSONParser parser = new JSONParser();
         JSONObject obj = (JSONObject) parser.parse(msg);
 
@@ -39,7 +39,7 @@ public class MessageManagerToClient extends MessageBase {
         return doneID;
     }
 
-    /** Turns the MessageClientToManager to string */
+    /** Turns the MessageClient2Manager to string */
     public String stringifyUsingJSON() {
         JSONObject obj = new JSONObject();
         obj.put("tag", this.tag.toString());
@@ -51,7 +51,7 @@ public class MessageManagerToClient extends MessageBase {
     /** This is for debug purpose */
     @Override
     public String toString() {
-        return "MessageManagerToClient{" +
+        return "MessageManager2Client{" +
                 "done=" + done +
                 ", doneID=" + doneID +
                 '}';

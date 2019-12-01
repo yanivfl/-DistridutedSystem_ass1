@@ -17,7 +17,7 @@ public class MessageWorker2Manager extends MessageManager2Worker {
         super(inBucket,inKey,outBucket,line);
         this.tag = Constants.TAGS.WORKER_2_MANAGER;
         this.sentiment = sentiment;
-        this.entities = entities
+        this.entities = entities;
     }
 
     /** Turns the MessageLocation to string */

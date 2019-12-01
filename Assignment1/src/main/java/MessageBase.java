@@ -1,6 +1,6 @@
 public abstract class MessageBase {
 
-    /** Turns the MessageClientToManager to string */
+    /** Turns the MessageClient2Manager to string */
     public abstract String stringifyUsingJSON();
 
     /** This is for debug purpose */

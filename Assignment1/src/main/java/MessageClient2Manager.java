@@ -4,7 +4,7 @@ import org.json.simple.parser.ParseException;
 
 import java.util.UUID;
 
-public class MessageClientToManager extends MessageBase {
+public class MessageClient2Manager extends MessageBase {
 
     private Constants.TAGS tag;
     private String inBucket;
@@ -16,8 +16,8 @@ public class MessageClientToManager extends MessageBase {
     private UUID senderID;
 
     /** Normal constructor */
-    public MessageClientToManager(String inBucket, String inKey, String outBucket, String outKey, long line,
-                                  boolean terminate, UUID senderID) {
+    public MessageClient2Manager(String inBucket, String inKey, String outBucket, String outKey, long line,
+                                 boolean terminate, UUID senderID) {
         this.tag = Constants.TAGS.CLIENT_2_MANAGER;
         this.inBucket = inBucket;
         this.inKey = inKey;
@@ -28,8 +28,8 @@ public class MessageClientToManager extends MessageBase {
         this.senderID = senderID;
     }
 
-    /** Unique constructor - turn the string to MessageClientToManager (assumes the msg was JSON stringify) */
-    public MessageClientToManager(String msg) throws ParseException {
+    /** Unique constructor - turn the string to MessageClient2Manager (assumes the msg was JSON stringify) */
+    public MessageClient2Manager(String msg) throws ParseException {
         JSONParser parser = new JSONParser();
         JSONObject obj = (JSONObject) parser.parse(msg);
 
@@ -46,7 +46,7 @@ public class MessageClientToManager extends MessageBase {
         this.senderID = UUID.fromString((String) obj.get("senderID"));
     }
 
-    /** Turns the MessageClientToManager to string */
+    /** Turns the MessageClient2Manager to string */
     public String stringifyUsingJSON() {
         JSONObject obj = new JSONObject();
         obj.put("tag", this.tag.toString());
@@ -63,7 +63,7 @@ public class MessageClientToManager extends MessageBase {
     /** This is for debug purpose */
     @Override
     public String toString() {
-        return "MessageClientToManager{" +
+        return "MessageClient2Manager{" +
                 "inBucket='" + inBucket + '\'' +
                 ", inKey='" + inKey + '\'' +
                 ", outBucket='" + outBucket + '\'' +
