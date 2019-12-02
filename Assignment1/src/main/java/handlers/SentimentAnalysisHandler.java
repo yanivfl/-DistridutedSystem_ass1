@@ -9,6 +9,7 @@ import edu.stanford.nlp.sentiment.SentimentCoreAnnotations;
 import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.util.CoreMap;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
@@ -58,7 +59,10 @@ public class SentimentAnalysisHandler {
     Named Entity Extraction:
     Given a text extracts the entities of the text together with their entity type (e.g. Obama:Person)
     */
-    public void printEntities(String review){
+    public List<String> getListOfEntities(String review){
+        List<String> entities = new ArrayList<>();
+
+
         // create an empty Annotation just with the given text
         Annotation document = new Annotation(review);
 
@@ -77,10 +81,12 @@ public class SentimentAnalysisHandler {
                 String word = token.get(CoreAnnotations.TextAnnotation.class);
                 // this is the NER label of the token
                 String ne = token.get(CoreAnnotations.NamedEntityTagAnnotation.class);
-                System.out.println("\t-" + word + ":" + ne);
+                entities.add(word + ":" + ne);
+//                System.out.println("\t-" + word + ":" + ne);
             }
         }
 
+        return entities;
     }
 
 

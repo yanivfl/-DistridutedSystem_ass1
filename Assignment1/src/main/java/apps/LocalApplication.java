@@ -30,17 +30,19 @@ import java.util.UUID;
 
 public class LocalApplication {
 
-    public static void createQueueAndUpload(S3Handler s3, SQSHandler sqs, String queueName, String bucket, String key, boolean shortPolling) throws IOException {
+    public static String createQueueAndUpload(S3Handler s3, SQSHandler sqs, String queueName, String bucket, String fileName, boolean shortPolling) throws IOException {
 
         // start SQS queue
         String QueueURL = sqs.createSQSQueue(queueName, true);
 
         // create a file containing the queue URL (file name is the key)
-        FileOutputStream URLfile = new FileOutputStream(key);
+        FileOutputStream URLfile = new FileOutputStream(fileName);
         URLfile.write(QueueURL.getBytes());
 
         // upload file to s3 - save the queue URL in a known location (known in the constants class)
-        s3.uploadFileToS3(bucket, key);
+        s3.uploadFileToS3(bucket, fileName);
+
+        return QueueURL;
     }
 
     public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) throws IOException {
@@ -84,7 +86,7 @@ public class LocalApplication {
             String line = reader.readLine();
 
             Worker2Manager msg = new Worker2Manager(line);
-            
+
         }
 
 

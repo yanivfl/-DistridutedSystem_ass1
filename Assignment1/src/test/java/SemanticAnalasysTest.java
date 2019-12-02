@@ -1,6 +1,7 @@
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.List;
 
 import apps.Constants;
 import handlers.SentimentAnalysisHandler;
@@ -29,7 +30,9 @@ public class SemanticAnalasysTest {
         String text = "Obama 53 Israel";
         try {
             SentimentAnalysisHandler sa = new SentimentAnalysisHandler();
-            sa.printEntities(text);
+            List<String> entities = sa.getListOfEntities(text);
+            System.out.println(entities.toString());
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -55,7 +58,8 @@ public class SemanticAnalasysTest {
                     String text = (String) jsonReview.get(Constants.TEXT);
                     System.out.println(text);
                     System.out.println("Sentiment Analysis output: " + sa .findSentiment( text));
-                    sa .printEntities(text);
+                    List<String> entities = sa.getListOfEntities(text);
+                    System.out.println(entities.toString());
                 }
 
                 // read next line

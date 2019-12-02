@@ -1,14 +1,13 @@
 package apps;
 
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.Message;
 import handlers.EC2Handler;
 import handlers.S3Handler;
 import handlers.SQSHandler;
 import handlers.SentimentAnalysisHandler;
-import messages.Manager2Client;
-import messages.Manager2Worker;
+import messages.Worker2Manager;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -18,48 +17,66 @@ public class MainWorkerClass {
 
     public static void main(String[] args) throws Exception {
         EC2Handler ec2 = new EC2Handler();
-        S3Handler s3 = new S3Handler(ec2);
         SQSHandler sqs = new SQSHandler(ec2.getCredentials());
         SentimentAnalysisHandler sa = new SentimentAnalysisHandler();
         JSONParser jsonParser = new JSONParser();
         String review;
         int sentiment;
-        String entities;
+
 
         // Get the (Manager -> Worker), (Worker -> Manager) SQS queues URLs from s3
-        S3Object M2W_object = s3.getS3().getObject(new GetObjectRequest(
-                Constants.MANAGER_TO_WORKERS_QUEUE_BUCKET,Constants.MANAGER_TO_WORKERS_QUEUE_KEY));
-        String M2W_QueueURL = Constants.inputStreamToString(M2W_object.getObjectContent());
-
-        S3Object W2M_object = s3.getS3().getObject(new GetObjectRequest(
-                Constants.WORKERS_TO_MANAGER_QUEUE_BUCKET,Constants.WORKERS_TO_MANAGER_QUEUE_KEY));
-        String W2M_QueueURL = Constants.inputStreamToString(W2M_object.getObjectContent());
-
+        String M2W_QueueURL = sqs.getURL(Constants.MANAGER_TO_WORKERS_QUEUE);
+        String W2M_QueueURL = sqs.getURL(Constants.WORKERS_TO_MANAGER_QUEUE);
 
         while(true){
             //recieve reviews from Manager
             List<Message> managerMessages = sqs.receiveMessages(M2W_QueueURL, true, true);
             for (Message managerMsg: managerMessages) {
                 JSONObject msgObj = (JSONObject) jsonParser.parse(managerMsg.getBody());
-                review = (String) msgObj.get(Constants.REVIEW);
-                sentiment =  sa.findSentiment(review);
-                entities = getEntities(review);
+                if (Constants.TAGS.valueOf((String) msgObj.get(Constants.TAG)) != Constants.TAGS.MANAGER_2_WORKER){
+                    System.out.println("Got an unexpected message");
+                    continue;
+                }
 
+                review = (String) msgObj.get(Constants.REVIEW);
+                sentiment = sa.findSentiment(review);
+
+                //send message to manager with results
+                sqs.sendMessage(W2M_QueueURL,new Worker2Manager(
+                                (String) msgObj.get(Constants.IN_BUCKET),
+                                (String) msgObj.get(Constants.IN_KEY),
+                                 review,
+                                 sentiment,
+                                 getEntities(sa, review),
+                                 getIsSarcastic(sentiment, ((Long) msgObj.get(Constants.RATING)).intValue()))
+                                .stringifyUsingJSON());
             }
 
-
-
-
+            //delete recieved messages
+            if(!managerMessages.isEmpty())
+                sqs.deleteMessage(managerMessages, M2W_QueueURL);
         }
     }
 
-
-    private static String getEntities(String review){
-
+    private static String getEntities(SentimentAnalysisHandler sa, String review){
+        return sa
+                .getListOfEntities(review)
+                .toString();
     }
 
-    private static boolean getIsSarcastic(){
+    /**
+     * get if the review is sarcastic or not
+     * @param sentiment
+     * @param ratings
+     * @return if rating is negative {1,2} and sentiment is positive {3,4} return true
+     *         if rating is positive {4,5} and sentiment is negative {0,1} return true
+     *         else return false
+     */
 
+    private static boolean getIsSarcastic(int sentiment, int ratings){
+        if(  Math.abs( (sentiment +1) - ratings)  >= 2 )
+            return true;
+        else return false;
     }
 
 }

@@ -29,27 +29,7 @@ public class Worker2Manager extends Base {
         this.isSarcastic = isSarcastic;
     }
 
-    /** Unique constructor - turn the string to Messages.MessageWorker2Manager (assumes the msg was JSON stringify) */
-    public Worker2Manager(String msg) throws ParseException {
-        JSONParser parser = new JSONParser();
-        JSONObject obj = (JSONObject) parser.parse(msg);
-
-        this.tag = Constants.TAGS.valueOf((String) obj.get("tag"));
-        if (this.tag != Constants.TAGS.WORKER_2_MANAGER)
-            throw new RuntimeException("Got an unexpected message");
-
-        this.inBucket = (String) obj.get("inBucket");
-        this.inKey = (String) obj.get("inKey");
-        this.review = (String) obj.get("review");
-        this.sentiment = (int) obj.get("sentiment");;
-        this.entities = (String) obj.get("sentiment");
-        this.isSarcastic = (Boolean) obj.get("isSarcastic");
-    }
-
-
-
-
-        /** Turns the MessageLocation to string */
+    /** Turns the MessageLocation to string */
     @Override
     public String stringifyUsingJSON() {
         JSONObject obj = new JSONObject();

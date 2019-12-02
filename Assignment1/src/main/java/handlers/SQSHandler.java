@@ -3,6 +3,7 @@ package handlers;
 import java.util.List;
 import java.util.Map.Entry;
 
+import apps.Constants;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -21,18 +22,26 @@ public class SQSHandler {
     private AWSCredentialsProvider credentials;
     private AmazonSQS sqs;
 
+
     /**
      * Initialize a connection with our SQS
      * params: credentials
      */
     public SQSHandler(AWSCredentialsProvider credentials){
-
         // connect to SQS
         this.credentials = credentials;
         this.sqs = AmazonSQSClientBuilder.standard()
                 .withCredentials(credentials)
                 .withRegion("us-west-2")
                 .build();
+    }
+
+    public AmazonSQS getSqs() {
+        return sqs;
+    }
+
+    public String getURL(String QueName){
+        return sqs.getQueueUrl(QueName).getQueueUrl();
     }
 
     /**
@@ -44,10 +53,12 @@ public class SQSHandler {
         CreateQueueRequest createQueueRequest;
 
         if (shortPolling)
-            createQueueRequest = new CreateQueueRequest("MyQueue"+ queueName);
+            createQueueRequest = new CreateQueueRequest(queueName);
         else
-            createQueueRequest = new CreateQueueRequest("MyQueue"+ queueName).
-                    addAttributesEntry("ReceiveMessageWaitTimeSeconds", "20");
+            createQueueRequest = new CreateQueueRequest(queueName).
+                    addAttributesEntry("ReceiveMessageWaitTimeSeconds", "10");
+
+        System.out.println("Created queue with the name: " + queueName);
 
         return this.sqs.createQueue(createQueueRequest).getQueueUrl();
     }
@@ -66,16 +77,16 @@ public class SQSHandler {
         if (shortPolling) {
             if (visibility_timeout)
                 receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl)
-                        .withVisibilityTimeout(40);
+                        .withVisibilityTimeout(20);
             else
                 receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl);
         } else {
             if (visibility_timeout)
                 receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl)
-                        .withWaitTimeSeconds(40)
-                        .withVisibilityTimeout(40);
+                        .withWaitTimeSeconds(20)
+                        .withVisibilityTimeout(20);
             else receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl)
-                        .withWaitTimeSeconds(40);
+                        .withWaitTimeSeconds(20);
         }
 
         return this.sqs.receiveMessage(receiveMessageRequest).getMessages();

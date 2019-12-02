@@ -1,11 +1,14 @@
 package apps;
 
-import javafx.util.Pair;
+
+import edu.stanford.nlp.util.Pair;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class ClientInfo {
+
+
 
     private Map<String, Pair<String, Integer>> in2outMap;
     private int outputFileCounter;
@@ -28,17 +31,17 @@ public class ClientInfo {
 
     public String getOutputKeyByInputKey(String inputKey) {
         Pair <String, Integer> outputAndCounter = in2outMap.get(inputKey);
-        return outputAndCounter.getKey();
+        return outputAndCounter.first;
     }
 
     public int getOutputKeyCountbyInputKey(String inputKey) {
         Pair <String, Integer> outputAndCounter = in2outMap.get(inputKey);
-        return outputAndCounter.getValue();
+        return outputAndCounter.second();
     }
 
     public void incOutputKeyCountbyInputKey(String inputKey, int incVal) {
         Pair <String, Integer> outputAndCounter = in2outMap.get(inputKey);
-        in2outMap.replace(inputKey, new Pair<>(outputAndCounter.getKey(), outputAndCounter.getValue() + incVal));
+        in2outMap.replace(inputKey, new Pair(outputAndCounter.first(), outputAndCounter.second() + incVal));
     }
 
     public int getOutputFileCounter() {
