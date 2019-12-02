@@ -1,5 +1,6 @@
 import messages.Base;
 import messages.Client2Manager;
+import messages.Client2Manager_init;
 import messages.Manager2Client;
 import org.json.simple.parser.ParseException;
 
@@ -11,11 +12,13 @@ public class MessageTest {
 
 
         UUID id = UUID.randomUUID();
-        Base msgLocation = new Client2Manager("1", "2", "3", "4", 5, true, id);
-        Base msgDone = new Manager2Client(true, id);
+        Base client2Manager = new Client2Manager("1", "2", "4");
+        Base manager2Client = new Manager2Client(true, id);
+        Base client2Manager_init = new Client2Manager_init("1", false, 3);
 
-        checkJSON(msgLocation);
-        checkJSON(msgDone);
+        checkJSON(client2Manager);
+        checkJSON(manager2Client);
+        checkJSON(client2Manager_init);
 
 
     }
@@ -23,13 +26,22 @@ public class MessageTest {
     public static void checkJSON(Base msg) throws ParseException {
 
         String msgStr = msg.stringifyUsingJSON();
-        Base parsedStr;
+        Base parsedStr = null;
+
+
 
         if (msg instanceof Client2Manager) {
             parsedStr = new Client2Manager(msgStr);
         }
         else {
-            parsedStr = new Manager2Client(msgStr);
+            if (msg instanceof Manager2Client) {
+                parsedStr = new Manager2Client(msgStr);
+            }
+            else {
+                if (msg instanceof Client2Manager_init) {
+                    parsedStr = new Client2Manager_init(msgStr);
+                }
+            }
         }
 
         System.out.println(parsedStr);

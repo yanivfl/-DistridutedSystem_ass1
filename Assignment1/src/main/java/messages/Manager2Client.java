@@ -20,7 +20,7 @@ public class Manager2Client extends Base {
         this.doneID = doneID;
     }
 
-    /** Unique constructor - turn the string to messages.MessageManagerToClient (assumes the msg was JSON stringify */
+    /** Unique constructor - turn the string to Manager2Client (assumes the msg was JSON stringify */
     public Manager2Client(String msg) throws ParseException {
         JSONParser parser = new JSONParser();
         JSONObject obj = (JSONObject) parser.parse(msg);
@@ -42,7 +42,7 @@ public class Manager2Client extends Base {
         return doneID;
     }
 
-    /** Turns the messages.MessageClientToManager to string */
+    /** Turns the Manager2Client to string */
     public String stringifyUsingJSON() {
         JSONObject obj = new JSONObject();
         obj.put("tag", this.tag.toString());
@@ -54,7 +54,7 @@ public class Manager2Client extends Base {
     /** This is for debug purpose */
     @Override
     public String toString() {
-        return "messages.MessageManagerToClient{" +
+        return "Manager2Client{" +
                 "done=" + done +
                 ", doneID=" + doneID +
                 '}';

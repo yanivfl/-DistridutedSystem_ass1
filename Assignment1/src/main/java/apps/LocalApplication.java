@@ -139,9 +139,9 @@ public class LocalApplication {
 
         // Create a bucket for this local application
         UUID appID = UUID.randomUUID();
-        String bucketName = s3.createBucket(appID.toString());
+        String bucket = s3.createBucket(appID.toString());
 
-        // Get the (Clients -> apps.Manager), (apps.Manager -> Clients) SQS queues URLs from s3
+        // Get the (Clients -> Manager), (Manager -> Clients) SQS queues URLs from s3
         S3Object CM_object = s3.getS3().getObject(new GetObjectRequest(
                 Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,Constants.CLIENTS_TO_MANAGER_QUEUE_KEY));
         String CM_QueueURL = Constants.inputStreamToString(CM_object.getObjectContent());
@@ -158,7 +158,7 @@ public class LocalApplication {
             String fileName = args[i];
 
             // upload the input file
-            keyNamesIn[i] = s3.uploadFileToS3(bucketName, fileName);
+            keyNamesIn[i] = s3.uploadFileToS3(bucket, fileName);
 
             // this will be the keyName of the output file
             keyNamesOut[i] = s3.getAwsFileName(fileName) + "out";
@@ -166,7 +166,7 @@ public class LocalApplication {
 
         // Send a message to the (Clients -> apps.Manager) SQS queue, stating the location of the files on S3
         for (int i=0; i<num_files; i++) {
-            Client2Manager messageClientToManager = new Client2Manager(bucketName, keyNamesIn[i], bucketName, keyNamesOut[i], -1, terminate, appID);
+            Client2Manager messageClientToManager = new Client2Manager(bucket, keyNamesIn[i], keyNamesOut[i]);
             sqs.sendMessage(CM_QueueURL, messageClientToManager.stringifyUsingJSON());
         }
 
@@ -185,7 +185,7 @@ public class LocalApplication {
         // Download the summary file from S3
         for (int i=0; i<num_files; i++) {
             String keyNameOut = keyNamesOut[i];
-            S3Object object = s3.getS3().getObject(new GetObjectRequest(bucketName, keyNameOut));
+            S3Object object = s3.getS3().getObject(new GetObjectRequest(bucket, keyNameOut));
 
 
 //            String summery = inputStreamToString(object.getObjectContent());
@@ -202,10 +202,10 @@ public class LocalApplication {
 
         // delete all input files, output files and the bucket from S3 for this local application
         for (int i=0; i<num_files; i++) {
-            s3.deleteFile(bucketName, keyNamesIn[i]);
-            s3.deleteFile(bucketName, keyNamesOut[i]);
+            s3.deleteFile(bucket, keyNamesIn[i]);
+            s3.deleteFile(bucket, keyNamesOut[i]);
         }
-        s3.deleteBucket(bucketName);
+        s3.deleteBucket(bucket);
 
     }
 }

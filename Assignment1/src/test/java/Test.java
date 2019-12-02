@@ -127,7 +127,7 @@ public class Test {
             sqs.sendMessage(myQueueURL, "This is my message text.");
 
             System.out.println("Receiving messages from MyQueue.\n");
-            messages = sqs.receiveMessages(myQueueURL, true);
+            messages = sqs.receiveMessages(myQueueURL, true, false);
             for (Message message : messages) {
                 System.out.println("  Message");
                 System.out.println("    MessageId:     " + message.getMessageId());

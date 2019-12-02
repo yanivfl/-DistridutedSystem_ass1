@@ -19,7 +19,7 @@ public class Client2Manager_terminate extends Base {
         this.senderID = senderID;
     }
 
-    /** Unique constructor - turn the string to messages.MessageClient2Manager_terminate (assumes the msg was JSON stringify) */
+    /** Unique constructor - turn the string to Client2Manager_terminate (assumes the msg was JSON stringify) */
     public Client2Manager_terminate(String msg) throws ParseException {
         JSONParser parser = new JSONParser();
         JSONObject obj = (JSONObject) parser.parse(msg);
@@ -35,7 +35,7 @@ public class Client2Manager_terminate extends Base {
         return senderID;
     }
 
-    /** Turns the MessageClient2Manager to string */
+    /** Turns the Client2Manager_terminate to string */
     public String stringifyUsingJSON() {
         JSONObject obj = new JSONObject();
         obj.put("tag", this.tag.toString());
@@ -46,7 +46,7 @@ public class Client2Manager_terminate extends Base {
     /** This is for debug purpose */
     @Override
     public String toString() {
-        return "MessageManager2Client{" +
+        return "Client2Manager_terminate{" +
                 ", senderID=" + senderID +
                 '}';
     }
