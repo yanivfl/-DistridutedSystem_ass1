@@ -40,7 +40,7 @@ public class Constants {
 
     public enum TAGS {
         CLIENT_2_MANAGER, CLIENT_2_MANAGER_terminate, CLIENT_2_MANAGER_init, MANAGER_2_CLIENT,
-        MANAGER_2_WORKER, WORKER_2_MANAGER;
+        MANAGER_2_WORKER, WORKER_2_MANAGER, SUMMERY_LINE;
     }
 
     public static final String[] HTML_COLORS = new String[]{"#990000", "#e60000", "#000000", "#8cff1a", "#4d9900"};
