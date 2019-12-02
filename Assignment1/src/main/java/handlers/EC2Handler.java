@@ -51,30 +51,24 @@ public class EC2Handler {
      * @param machineCount: number of machine instances to launch
      * @return List<Instance>: list of machines instances we launched
      */
-    public List<Instance> launchEC2Instances(int machineCount, String tagName) {
+    public List<Instance> launchEC2Instances(int machineCount, Constants.INSTANCE_TAG tagName) {
         try {
             // launch instances
-            RunInstancesRequest request = new RunInstancesRequest(Constants.AMI, machineCount, machineCount);
-            request.setInstanceType(InstanceType.T2Micro.toString());
-            List<Instance> instances = this.ec2.runInstances(request).getReservation().getInstances();
+            RunInstancesRequest runInstrequest = new RunInstancesRequest(Constants.AMI, machineCount, machineCount);
+            runInstrequest.setInstanceType(InstanceType.T2Micro.toString());
+            List<Instance> instances = this.ec2.runInstances(runInstrequest).getReservation().getInstances();
 
             // tag instances with the given tag
-
-
-//            Tag tag = Tag.builder()
-//                    .key("Name")
-//                    .value(name)
-//                    .build();
-
             for (Instance inst: instances) {
-
+                Tag tag = new Tag().withKey("Type").withValue(tagName.toString());
+                CreateTagsRequest createTagsRequest = new CreateTagsRequest().
+                        withResources(inst.getInstanceId())
+                        .withTags(tag);
+                ec2.createTags(createTagsRequest);
             }
 
-
-
-
             System.out.println("Launch instances: " + instances);
-            System.out.println("You launched: " + instances.size() + " instances");
+            System.out.println("You launched: " + instances.size() + " instances" + ", with tag: " + tagName);
             return instances;
 
         } catch (AmazonServiceException ase) {
@@ -83,9 +77,11 @@ public class EC2Handler {
         }
     }
 
+
+
     /**
      * terminate requested machine instance
-     * @param ec2Client: instace of EC2
+     * @param instanecID
      * @return boolean: true  iff instance was terminated
      */
     public boolean terminateEC2Instance(String instanecID) {
@@ -112,7 +108,7 @@ public class EC2Handler {
      * params: ec2, tag
      * returns: True: There is an instance with the requested tag , False: otherwise
      */
-    public boolean isTagExists(String tag) {
+    public boolean isTagExists(Constants.INSTANCE_TAG tag) {
         boolean done = false;   // done = True - when finished going over all the instances.
         DescribeInstancesRequest instRequest = new DescribeInstancesRequest();
 
@@ -129,7 +125,7 @@ public class EC2Handler {
                         List<TagDescription> tags = tagResult.getTags();
 
                         for (TagDescription tagDesc: tags) {
-                            if (tagDesc.getValue().equals(tag))
+                            if (tagDesc.getValue().equals(tag.toString()))
                                 return true;
                         }
 

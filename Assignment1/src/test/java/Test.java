@@ -1,3 +1,4 @@
+import apps.Constants;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.s3.model.*;
@@ -38,7 +39,7 @@ public class Test {
     public static void testInstances(EC2Handler ec2) throws Exception {
         System.out.println("\n\n*** test EC2 ***");
 
-        List<Instance> myInstances = ec2.launchEC2Instances(1, "");
+        List<Instance> myInstances = ec2.launchEC2Instances(1, Constants.INSTANCE_TAG.TAG_MANAGER);
         if(myInstances != null){
             Instance manager = myInstances.get(0);
             String instanceIdToTerminate = manager.getInstanceId();

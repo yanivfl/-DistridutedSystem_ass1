@@ -1,5 +1,6 @@
 package apps;
 
+import com.amazonaws.services.ec2.model.Instance;
 import messages.Client2Manager;
 import messages.Client2Manager_terminate;
 import messages.Manager2Client;
@@ -46,7 +47,18 @@ public class LocalApplication {
 
     public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) throws IOException {
 
+        List<Instance> myInstances = ec2.launchEC2Instances(1, Constants.INSTANCE_TAG.TAG_MANAGER);
 
+
+
+
+
+
+        if(myInstances != null){
+            Instance manager = myInstances.get(0);
+            String instanceIdToTerminate = manager.getInstanceId();
+            ec2.terminateEC2Instance(instanceIdToTerminate);
+        }
 
 
 
@@ -60,6 +72,9 @@ public class LocalApplication {
     }
 
     public static void startQueues(S3Handler s3, SQSHandler sqs) throws IOException {
+
+        // TODO: add bucket creation!!!!
+
         // start SQS queue for Clients -> apps.Manager (CM) messages
         createQueueAndUpload(s3, sqs, "Clients2ManagerQueue", Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,
                 Constants.CLIENTS_TO_MANAGER_QUEUE_KEY, true);
@@ -147,7 +162,7 @@ public class LocalApplication {
             n =Integer.parseInt(args[args.length-1]);
 
         // TODO - Check if a apps.Manager node is active on the EC2 cloud. If it is not, the application will start the manager node
-        if (!ec2.isTagExists(Constants.TAG_MANAGER)) {
+        if (!ec2.isTagExists(Constants.INSTANCE_TAG.TAG_MANAGER)) {
             startManager(ec2, s3, sqs);
             startQueues(s3, sqs);
         }
