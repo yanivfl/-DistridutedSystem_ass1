@@ -60,13 +60,23 @@ public class SQSHandler {
         this.sqs.sendMessage(new SendMessageRequest(myQueueUrl, messageBody));
     }
 
-    public List<Message> receiveMessages(String myQueueUrl, boolean shortPolling) {
+    public List<Message> receiveMessages(String myQueueUrl, boolean shortPolling, boolean visibility_timeout) {
         ReceiveMessageRequest receiveMessageRequest;
 
-        if (shortPolling)
-            receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl);
-        else
-            receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl).withWaitTimeSeconds(40);
+        if (shortPolling) {
+            if (visibility_timeout)
+                receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl)
+                        .withVisibilityTimeout(40);
+            else
+                receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl);
+        } else {
+            if (visibility_timeout)
+                receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl)
+                        .withWaitTimeSeconds(40)
+                        .withVisibilityTimeout(40);
+            else receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl)
+                        .withWaitTimeSeconds(40);
+        }
 
         return this.sqs.receiveMessage(receiveMessageRequest).getMessages();
     }
