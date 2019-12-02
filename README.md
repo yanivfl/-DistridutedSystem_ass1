@@ -22,3 +22,10 @@ TODO: (feel free to change this)
   c. connect SQS to worker
   d. run 1 with worker and manager
 5. run everything like it should on aws
+6. edit README
+
+
+free time TODOS:
+  1.  delete Message Constructors (with String msg) from all msgs.
+  2. try and catch to all functions that have Json functions
+  3. with finally erase resources

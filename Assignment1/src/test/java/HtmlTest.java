@@ -1,45 +1,35 @@
-import java.io.File;
+import apps.LocalApplication;
+import messages.SummeryLine;
+import org.json.simple.parser.ParseException;
+
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.util.UUID;
 
 public class HtmlTest {
 
 
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, ParseException {
 
-        String html = createHtml();
-
-        String fileName = "output.html";
-        File htmlFile = new File(fileName);
-        Files.write(Paths.get(fileName), html.getBytes());
+        simpleTest();
 
     }
 
-    public static String createHtml() {
-        StringBuilder html = new StringBuilder();
+    private static void simpleTest() throws IOException, ParseException {
 
-        html.append("<!DOCTYPE html>\n<html>\n<head>\n<title>Page Title</title>\n</head>\n<body>\n<h1>Amazon Reviews - Sarcasm Detector</h1><ul>");
+        SummeryLine summeryLine1 = new SummeryLine("review 1", 0, "[ent1;ent2;ent3]", true);
+        SummeryLine summeryLine2 = new SummeryLine("review 2", 1, "[ent1;ent2;ent3]", false);
+        SummeryLine summeryLine3 = new SummeryLine("review 3", 2, "[ent1;ent2;ent3]", true);
+        SummeryLine summeryLine4 = new SummeryLine("review 4", 3, "[ent1;ent2;ent3]", true);
+        SummeryLine summeryLine5 = new SummeryLine("review 5", 4, "[ent1;ent2;ent3]", false);
 
+        String input = summeryLine1.stringifyUsingJSON() + "\n" +
+                summeryLine2.stringifyUsingJSON() + "\n" +
+                summeryLine3.stringifyUsingJSON() + "\n" +
+                summeryLine4.stringifyUsingJSON() + "\n" +
+                summeryLine5.stringifyUsingJSON();
 
-
-        String color="@@", review="@@", entityList="@@", true_false="@@", link="@@";
-
-        String li =
-                "<li>\n" +
-                "    <span style=\"color: "+ color +"\">** "+ review +" **</span>\n" +
-                "    "+ entityList +"\n" +
-                "    - This is a "+ true_false +" sarcastic review.\n" +
-                "    <a href=\""+ link +"\">Link</a>\n" +
-                "  </li>";
-
-
-        html.append(li);
-
-
-
-        html.append("</ul>\n</body>\n</html>");
-        return html.toString();
+        LocalApplication.createHtml(UUID.randomUUID(), 1, new ByteArrayInputStream(input.getBytes()));
     }
 }
