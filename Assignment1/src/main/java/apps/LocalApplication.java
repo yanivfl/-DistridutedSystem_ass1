@@ -66,16 +66,6 @@ public class LocalApplication {
 
     }
 
-    private static String inputStreamToString(InputStream input) throws IOException {
-        BufferedInputStream bis = new BufferedInputStream(input);
-        ByteArrayOutputStream buf = new ByteArrayOutputStream();
-        int result = bis.read();
-        while(result != -1) {
-            buf.write((byte) result);
-            result = bis.read();
-        }
-        return buf.toString("UTF-8");
-    }
 
     /**
      * Create an html file representing the results from the summery.
@@ -154,11 +144,11 @@ public class LocalApplication {
         // Get the (Clients -> apps.Manager), (apps.Manager -> Clients) SQS queues URLs from s3
         S3Object CM_object = s3.getS3().getObject(new GetObjectRequest(
                 Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,Constants.CLIENTS_TO_MANAGER_QUEUE_KEY));
-        String CM_QueueURL = inputStreamToString(CM_object.getObjectContent());
+        String CM_QueueURL = Constants.inputStreamToString(CM_object.getObjectContent());
 
         S3Object MC_object = s3.getS3().getObject(new GetObjectRequest(
                 Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,Constants.CLIENTS_TO_MANAGER_QUEUE_KEY));
-        String MC_QueueURL = inputStreamToString(MC_object.getObjectContent());
+        String MC_QueueURL = Constants.inputStreamToString(MC_object.getObjectContent());
 
         // Upload all the input files to S3
         String[] keyNamesIn = new String[num_files];
@@ -184,7 +174,7 @@ public class LocalApplication {
         // (the summary file) is available on S3.
         boolean done = false;
         while (!done) {
-            List<Message> doneMessages = sqs.receiveMessages(MC_QueueURL, false);
+            List<Message> doneMessages = sqs.receiveMessages(MC_QueueURL, false, false);
             for (Message msg: doneMessages) {
                 Manager2Client msgDone = new Manager2Client(msg.getBody());
                 if (msgDone.isDone() && msgDone.getDoneID().equals(appID))

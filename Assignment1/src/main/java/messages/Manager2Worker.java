@@ -11,14 +11,16 @@ public class Manager2Worker extends Base {
     private Constants.TAGS tag;
     private String inBucket;
     private String inKey;
-    private long line;
+    private String review;
+    private byte rating;
 
     /** Normal constructor */
-    public Manager2Worker(String inBucket, String inKey, String outBucket, long line) {
+    public Manager2Worker(String inBucket, String inKey, String review, byte rating) {
         this.tag = Constants.TAGS.MANAGER_2_WORKER;
         this.inBucket = inBucket;
         this.inKey = inKey;
-        this.line = line;
+        this.review = review;
+        this.rating = rating;
     }
 
     /** Unique constructor - turn the string to Messages.MessageWorker2Manager (assumes the msg was JSON stringify) */
@@ -32,16 +34,17 @@ public class Manager2Worker extends Base {
 
         this.inBucket = (String) obj.get("inBucket");
         this.inKey = (String) obj.get("inKey");
-        this.line = (Long) obj.get("line");
+        this.review = (String) obj.get("review");
     }
 
     /** Turns the MessageLocation to string */
     public String stringifyUsingJSON() {
         JSONObject obj = new JSONObject();
-        obj.put("tag", this.tag.toString());
-        obj.put("inBucket", this.inBucket);
-        obj.put("inKey", this.inKey);
-        obj.put("line", this.line);
+        obj.put(Constants.TAG, this.tag.toString());
+        obj.put(Constants.IN_BUCKET, this.inBucket);
+        obj.put(Constants.IN_KEY, this.inKey);
+        obj.put(Constants.REVIEW, this.review);
+        obj.put(Constants.RATING, this.rating);
         return obj.toJSONString();
     }
 
@@ -51,7 +54,8 @@ public class Manager2Worker extends Base {
         return "Messages.MessageManager2Worker{" +
                 "inBucket='" + inBucket + '\'' +
                 ", inKey='" + inKey + '\'' +
-                ", line=" + line +
+                ", rating='" + rating + '\'' +
+                ", review=" + review +
                 '}';
     }
 }

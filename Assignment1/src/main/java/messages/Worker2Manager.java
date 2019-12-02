@@ -1,6 +1,7 @@
 package messages;
 
 import apps.Constants;
+import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -11,18 +12,18 @@ public class Worker2Manager extends Base {
     private Constants.TAGS tag;
     private String inBucket;
     private String inKey;
-    private long line;
+    private String review;
     private int sentiment;
     private String entities;
     private boolean isSarcastic;
 
     /** Normal constructor */
-    public Worker2Manager(String inBucket, String inKey, String outBucket, long line,
+    public Worker2Manager(String inBucket, String inKey, String review,
                           int sentiment, String entities, boolean isSarcastic) {
         this.tag = Constants.TAGS.WORKER_2_MANAGER;
         this.inBucket = inBucket;
         this.inKey = inKey;
-        this.line = line;
+        this.review = review;
         this.sentiment = sentiment;
         this.entities = entities;
         this.isSarcastic = isSarcastic;
@@ -39,9 +40,8 @@ public class Worker2Manager extends Base {
 
         this.inBucket = (String) obj.get("inBucket");
         this.inKey = (String) obj.get("inKey");
-        this.line = (Long) obj.get("line");
-        this.sentiment = (int) obj.get("sentiment");
-        this.sentiment = (int) obj.get("sentiment");
+        this.review = (String) obj.get("review");
+        this.sentiment = (int) obj.get("sentiment");;
         this.entities = (String) obj.get("sentiment");
         this.isSarcastic = (Boolean) obj.get("isSarcastic");
     }
@@ -53,13 +53,13 @@ public class Worker2Manager extends Base {
     @Override
     public String stringifyUsingJSON() {
         JSONObject obj = new JSONObject();
-        obj.put("tag", this.tag.toString());
-        obj.put("inBucket", this.inBucket);
-        obj.put("inKey", this.inKey);
-        obj.put("line", this.line);
-        obj.put("sentiment", this.sentiment);
-        obj.put("entities", this.entities);
-        obj.put("isSarcastic", this.isSarcastic);
+        obj.put(Constants.TAG, this.tag.toString());
+        obj.put(Constants.IN_BUCKET, this.inBucket);
+        obj.put(Constants.IN_KEY, this.inKey);
+        obj.put(Constants.REVIEW, this.review);
+        obj.put(Constants.SENTIMENT, this.sentiment);
+        obj.put(Constants.ENTITIES, this.entities);
+        obj.put(Constants.IS_SARCASTIC, this.isSarcastic);
         return obj.toJSONString();
     }
 
@@ -72,9 +72,9 @@ public class Worker2Manager extends Base {
                 "tag=" + tag +
                 ", inBucket='" + inBucket + '\'' +
                 ", inKey='" + inKey + '\'' +
-                ", line=" + line +
-                ", sentiment=" + sentiment +
-                ", entities=" + entities +
+                ", review=" + review + '\'' +
+                ", sentiment=" + sentiment + '\'' +
+                ", entities=" + entities + '\'' +
                 ", isSarcastic=" + isSarcastic +
                 '}';
     }
