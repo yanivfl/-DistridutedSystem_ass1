@@ -28,3 +28,4 @@ TODO: (feel free to change this)
 free time TODOS:
   1.  delete Message Constructors (with String msg) from all msgs.
   2. try and catch to all functions that have Json functions
+  3. with finally erase resources
