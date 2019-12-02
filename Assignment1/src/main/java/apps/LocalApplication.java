@@ -1,6 +1,7 @@
 package apps;
 
 import messages.Client2Manager;
+import messages.Client2Manager_terminate;
 import messages.Manager2Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
@@ -8,8 +9,12 @@ import com.amazonaws.services.sqs.model.Message;
 import handlers.EC2Handler;
 import handlers.S3Handler;
 import handlers.SQSHandler;
+import messages.Worker2Manager;
+import org.json.simple.parser.ParseException;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,8 +36,8 @@ public class LocalApplication {
         String QueueURL = sqs.createSQSQueue(queueName, true);
 
         // create a file containing the queue URL (file name is the key)
-        FileOutputStream CM_URLfile = new FileOutputStream(key);
-        CM_URLfile.write(QueueURL.getBytes());
+        FileOutputStream URLfile = new FileOutputStream(key);
+        URLfile.write(QueueURL.getBytes());
 
         // upload file to s3 - save the queue URL in a known location (known in the constants class)
         s3.uploadFileToS3(bucket, key);
@@ -62,6 +67,53 @@ public class LocalApplication {
             result = bis.read();
         }
         return buf.toString("UTF-8");
+    }
+
+    /**
+     * Create an html file representing the results from the summery.
+     * params: appID, summery
+     */
+    public static void createHtml(UUID appID, int numOutput, InputStream summery) throws IOException, ParseException {
+
+        // create the string
+        StringBuilder html = new StringBuilder();
+
+        html.append("<!DOCTYPE html>\n<html>\n<head>\n<title>Page Title</title>\n</head>\n<body>\n<h1>Amazon Reviews - Sarcasm Detector</h1><ul>");
+
+        // go through the summery output file line by line
+        BufferedReader reader = new BufferedReader(new InputStreamReader(summery));
+        while(reader.ready()) {
+            String line = reader.readLine();
+
+            Worker2Manager msg = new Worker2Manager(line);
+            
+        }
+
+
+
+
+
+        String color="@@", review="@@", entityList="@@", true_false="@@", link="@@";
+
+        String li =
+                "<li>\n" +
+                        "    <span style=\"color: "+ color +"\">** "+ review +" **</span>\n" +
+                        "    "+ entityList +"\n" +
+                        "    - This is a "+ true_false +" sarcastic review.\n" +
+                        "    <a href=\""+ link +"\">Link</a>\n" +
+                        "  </li>";
+
+
+        html.append(li);
+
+
+
+        html.append("</ul>\n</body>\n</html>");
+
+        // create the file
+        String fileName = "Output_for_app_" + appID.toString() + "_no._" + numOutput;
+        File htmlFile = new File(fileName);
+        Files.write(Paths.get(fileName), html.toString().getBytes());
     }
 
     public static void main(String[] args) throws Exception {
@@ -96,9 +148,9 @@ public class LocalApplication {
                 Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,Constants.CLIENTS_TO_MANAGER_QUEUE_KEY));
         String CM_QueueURL = inputStreamToString(CM_object.getObjectContent());
 
-        S3Object MC_object2 = s3.getS3().getObject(new GetObjectRequest(
+        S3Object MC_object = s3.getS3().getObject(new GetObjectRequest(
                 Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,Constants.CLIENTS_TO_MANAGER_QUEUE_KEY));
-        String MC_QueueURL = inputStreamToString(MC_object2.getObjectContent());
+        String MC_QueueURL = inputStreamToString(MC_object.getObjectContent());
 
         // Upload all the input files to S3
         String[] keyNamesIn = new String[num_files];
@@ -132,15 +184,28 @@ public class LocalApplication {
             }
         }
 
-        // TODO: Download the summary file from S3, and create an html file representing the results.
-        
+        // Download the summary file from S3
+        for (int i=0; i<num_files; i++) {
+            String keyNameOut = keyNamesOut[i];
+            S3Object object = s3.getS3().getObject(new GetObjectRequest(bucketName, keyNameOut));
 
-        // TODO: Send a termination message to the apps.Manager if it was supplied as one of its input arguments.
 
+//            String summery = inputStreamToString(object.getObjectContent());
 
-        // delete all input files from S3 and the bucket for this local application
+            // TODO: Create an html file representing the results.
+            createHtml(appID, i, object.getObjectContent());
+        }
+
+        // Send a termination message to the Manager if it was supplied as one of its input arguments.
+        if (terminate) {
+            Client2Manager_terminate terminateMsg = new Client2Manager_terminate(appID);
+            sqs.sendMessage(CM_QueueURL, terminateMsg.stringifyUsingJSON());
+        }
+
+        // delete all input files, output files and the bucket from S3 for this local application
         for (int i=0; i<num_files; i++) {
             s3.deleteFile(bucketName, keyNamesIn[i]);
+            s3.deleteFile(bucketName, keyNamesOut[i]);
         }
         s3.deleteBucket(bucketName);
 
