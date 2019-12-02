@@ -6,4 +6,7 @@ public class Manager {
 
     // TODO: for each local app the bucket will serve the manager as as appID
 
+
+    // TODO: remove all execptions from the project!
+
 }
