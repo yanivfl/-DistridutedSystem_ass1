@@ -24,9 +24,6 @@ public class Constants {
     public static final String IS_SARCASTIC= "isSarcastic";
     public static final String RATING= "rating";
 
-
-
-
     public static final String CLIENTS_TO_MANAGER_QUEUE_BUCKET = "ClientsToManagerQueueBucket";
     public static final String CLIENTS_TO_MANAGER_QUEUE_KEY = "ClientsToManagerQueueKey.txt";
 
@@ -41,7 +38,7 @@ public class Constants {
 
     public enum TAGS {
         CLIENT_2_MANAGER, CLIENT_2_MANAGER_terminate, CLIENT_2_MANAGER_init, MANAGER_2_CLIENT,
-        MANAGER_2_WORKER, WORKER_2_MANAGER;
+        MANAGER_2_WORKER, WORKER_2_MANAGER, SUMMERY_LINE;
     }
 
     public static final String[] HTML_COLORS = new String[]{"#990000", "#e60000", "#000000", "#8cff1a", "#4d9900"};
@@ -56,7 +53,6 @@ public class Constants {
         }
         return buf.toString("UTF-8");
     }
-
 
 }
 

@@ -9,7 +9,8 @@ import com.amazonaws.services.sqs.model.Message;
 import handlers.EC2Handler;
 import handlers.S3Handler;
 import handlers.SQSHandler;
-import messages.Worker2Manager;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.io.*;
@@ -45,9 +46,20 @@ public class LocalApplication {
 
     public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) throws IOException {
 
+
+
+
+
+
         // TODO: understand how to run instances with a tag
+
         // TODO: run manager
 
+
+
+    }
+
+    public static void startQueues(S3Handler s3, SQSHandler sqs) throws IOException {
         // start SQS queue for Clients -> apps.Manager (CM) messages
         createQueueAndUpload(s3, sqs, "Clients2ManagerQueue", Constants.CLIENTS_TO_MANAGER_QUEUE_BUCKET,
                 Constants.CLIENTS_TO_MANAGER_QUEUE_KEY, true);
@@ -63,13 +75,11 @@ public class LocalApplication {
         // start SQS queue for apps.Manager -> Clients (MC) messages ("done" messages) - type long polling
         createQueueAndUpload(s3, sqs, "Workers2ManagerQueue", Constants.WORKERS_TO_MANAGER_QUEUE_BUCKET,
                 Constants.WORKERS_TO_MANAGER_QUEUE_KEY, false);
-
     }
-
 
     /**
      * Create an html file representing the results from the summery.
-     * params: appID, summery
+     * params: appID, numOutput, summery
      */
     public static void createHtml(UUID appID, int numOutput, InputStream summery) throws IOException, ParseException {
 
@@ -83,33 +93,37 @@ public class LocalApplication {
         while(reader.ready()) {
             String line = reader.readLine();
 
-            Worker2Manager msg = new Worker2Manager(line);
-            
+
+
+            // parse line using JSON
+            JSONParser parser = new JSONParser();
+            JSONObject obj = (JSONObject) parser.parse(line);
+
+            if (Constants.TAGS.valueOf((String) obj.get("tag")) != Constants.TAGS.SUMMERY_LINE)
+                throw new RuntimeException("Got an unexpected message - couldn't create an HTML file");
+
+            String review = (String) obj.get(Constants.REVIEW);
+            long sentiment = (Long) obj.get(Constants.SENTIMENT);
+            String entityList = (String) obj.get(Constants.ENTITIES);
+            String isSarcastic;
+            if ((Boolean) obj.get(Constants.IS_SARCASTIC))
+                isSarcastic = "";
+            else
+                isSarcastic = "not";
+
+            String li =
+                    "<li>\n" +
+                            "    <span style=\"color: "+ Constants.HTML_COLORS[(int)sentiment] +"\">** "+ review +" **</span>\n" +
+                            "    "+ entityList +"\n" +
+                            "    - This is "+ isSarcastic +" a sarcastic review.\n" +
+                            "  </li>";
+            html.append(li);
         }
-
-
-
-
-
-        String color="@@", review="@@", entityList="@@", true_false="@@", link="@@";
-
-        String li =
-                "<li>\n" +
-                        "    <span style=\"color: "+ color +"\">** "+ review +" **</span>\n" +
-                        "    "+ entityList +"\n" +
-                        "    - This is a "+ true_false +" sarcastic review.\n" +
-                        "    <a href=\""+ link +"\">Link</a>\n" +
-                        "  </li>";
-
-
-        html.append(li);
-
-
 
         html.append("</ul>\n</body>\n</html>");
 
-        // create the file
-        String fileName = "Output_for_app_" + appID.toString() + "_no._" + numOutput;
+        // create the HTML file
+        String fileName = "Output_for_app_" + appID.toString() + "_no._" + numOutput + ".html";
         File htmlFile = new File(fileName);
         Files.write(Paths.get(fileName), html.toString().getBytes());
     }
@@ -135,6 +149,7 @@ public class LocalApplication {
         // TODO - Check if a apps.Manager node is active on the EC2 cloud. If it is not, the application will start the manager node
         if (!ec2.isTagExists(Constants.TAG_MANAGER)) {
             startManager(ec2, s3, sqs);
+            startQueues(s3, sqs);
         }
 
         // Create a bucket for this local application
@@ -186,11 +201,6 @@ public class LocalApplication {
         for (int i=0; i<num_files; i++) {
             String keyNameOut = keyNamesOut[i];
             S3Object object = s3.getS3().getObject(new GetObjectRequest(bucket, keyNameOut));
-
-
-//            String summery = inputStreamToString(object.getObjectContent());
-
-            // TODO: Create an html file representing the results.
             createHtml(appID, i, object.getObjectContent());
         }
 

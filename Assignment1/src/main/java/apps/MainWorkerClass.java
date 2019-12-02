@@ -55,11 +55,11 @@ public class MainWorkerClass {
 
 
     private static String getEntities(String review){
-
+        return null;
     }
 
     private static boolean getIsSarcastic(){
-
+        return false;
     }
 
 }

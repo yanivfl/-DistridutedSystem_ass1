@@ -1,7 +1,4 @@
-import messages.Base;
-import messages.Client2Manager;
-import messages.Client2Manager_init;
-import messages.Manager2Client;
+import messages.*;
 import org.json.simple.parser.ParseException;
 
 import java.util.UUID;
@@ -16,11 +13,12 @@ public class MessageTest {
         Base manager2Client = new Manager2Client(true, id);
         Base client2Manager_init = new Client2Manager_init("1", false, 3);
 
+        SummeryLine summeryLine1 = new SummeryLine("review 1", 0, "[ent1;ent2;ent3]", true);
+
         checkJSON(client2Manager);
         checkJSON(manager2Client);
         checkJSON(client2Manager_init);
-
-
+        checkJSON(summeryLine1);
     }
 
     public static void checkJSON(Base msg) throws ParseException {
@@ -40,6 +38,11 @@ public class MessageTest {
             else {
                 if (msg instanceof Client2Manager_init) {
                     parsedStr = new Client2Manager_init(msgStr);
+                }
+                else {
+                    if (msg instanceof SummeryLine) {
+                        parsedStr = new SummeryLine(msgStr);
+                    }
                 }
             }
         }
