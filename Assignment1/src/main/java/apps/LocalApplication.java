@@ -54,11 +54,11 @@ public class LocalApplication {
 
 
 
-        if(myInstances != null){
-            Instance manager = myInstances.get(0);
-            String instanceIdToTerminate = manager.getInstanceId();
-            ec2.terminateEC2Instance(instanceIdToTerminate);
-        }
+//        if(myInstances != null){
+//            Instance manager = myInstances.get(0);
+//            String instanceIdToTerminate = manager.getInstanceId();
+//            ec2.terminateEC2Instance(instanceIdToTerminate);
+//        }
 
 
 
