@@ -41,7 +41,7 @@ public class ManageWorkers implements Runnable {
         String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
 
         while(true){
-            List<Message> workerMessages = sqs.receiveMessages(W2M_QueueURL, false, false);
+            List<Message> workerMessages = sqs.receiveMessages(W2M_QueueURL, true, true);
             System.out.println("Manager recieved " + workerMessages.size() + " Messages from W2M Queue");
             for (Message workerMsg : workerMessages) {
                 JSONObject msgObj= Constants.validateMessageAndReturnObj(workerMsg , Constants.TAGS.WORKER_2_MANAGER);
@@ -51,16 +51,20 @@ public class ManageWorkers implements Runnable {
                 String inKey = (String) msgObj.get(Constants.IN_KEY);
 
                 ClientInfo clientInfo = clientsInfo.get(inBucket);
+                if(clientInfo == null)
+                    continue;
                 boolean isUpdated = clientInfo.updateLocalOutputFile(inBucket,inKey, msgObj.toJSONString());
                 if(isUpdated){
                    long reviewsLeft = clientInfo.decOutputCounter(inKey);
                    if (reviewsLeft == 0){
                        s3.uploadFileToS3(inBucket, clientInfo.getLocalFileName(inBucket,inKey));
+                      clientInfo.deleteLocalFile(inBucket, inKey);
                       int outputFilesLeft = clientInfo.decOutputFiles();
                       if (outputFilesLeft == 0){
                           sqs.sendMessage(M2C_QueueURL,
                                   new Manager2Client(true, inBucket )
                                           .stringifyUsingJSON());
+                          clientsInfo.remove(inBucket);
                       }
                    }
                 }
@@ -69,7 +73,6 @@ public class ManageWorkers implements Runnable {
             //delete recieved messages
             if(!workerMessages.isEmpty())
                 sqs.deleteMessage(workerMessages, W2M_QueueURL);
-
         }
 
     }

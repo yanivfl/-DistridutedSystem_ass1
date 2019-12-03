@@ -31,6 +31,22 @@ public class ClientInfo {
         return inBucket + "_" + outkey;
     }
 
+    public boolean deleteLocalFile(String inBucket, String inputKey){
+        if(getLockForInputKey(inputKey).isHeldByCurrentThread()){
+            System.out.println("Entering deleteLocalFile with lock");
+            getLockForInputKey(inputKey).unlock();
+        }
+        getLockForInputKey(inputKey).lock();
+        boolean isDeleted = false;
+        try {
+            String localFileName = getLocalFileName(inBucket, inputKey);
+            isDeleted = new File(localFileName).delete();
+        } finally {
+            getLockForInputKey(inputKey).unlock();
+            return isDeleted  ;
+        }
+    }
+
     private ReentrantLock getLockForInputKey(String inputKey) {
         return (ReentrantLock) in2outMap.get(inputKey).get(Constants.LOCK);
     }
