@@ -33,10 +33,10 @@ public class MainWorkerClass {
             List<Message> managerMessages = sqs.receiveMessages(M2W_QueueURL, true, true);
             System.out.println("worker recieved " + managerMessages.size() + " Messages");
             for (Message managerMsg: managerMessages) {
-                if (! Constants.validateMessage(managerMsg, Constants.TAGS.MANAGER_2_WORKER))
+                JSONObject msgObj = Constants.validateMessageAndReturnObj(managerMsg, Constants.TAGS.MANAGER_2_WORKER);
+                if(msgObj==null)
                     continue;
 
-                JSONObject msgObj = (JSONObject) jsonParser.parse(managerMsg.getBody());
                 review = (String) msgObj.get(Constants.REVIEW);
                 sentiment = sa.findSentiment(review);
 
