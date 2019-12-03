@@ -8,8 +8,6 @@ import java.util.Map;
 
 public class ClientInfo {
 
-
-
     private Map<String, Pair<String, Integer>> in2outMap;
     private int outputFileCounter;
     private int reviewsPerWorker;
