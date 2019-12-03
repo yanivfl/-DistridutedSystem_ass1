@@ -1,7 +1,9 @@
 package apps;
 
+import com.amazonaws.services.sqs.model.Message;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -54,6 +56,21 @@ public class Constants {
         return buf.toString("UTF-8");
     }
 
+    public static JSONObject validateMessageAndReturnObj(Message msg , TAGS tag){
+        JSONParser jsonParser = new JSONParser();
+        JSONObject msgObj = null;
+        try {
+            msgObj = (JSONObject) jsonParser.parse(msg.getBody());
+        } catch (ParseException e) {
+            System.out.println("Can't parse Message. got exception: "+ e);
+            return null;
+        }
+        if (Constants.TAGS.valueOf((String) msgObj.get(Constants.TAG)) != tag) {
+            System.out.println("Got an unexpected message");
+            return null;
+        }
+        return msgObj;
+    }
 
 }
 

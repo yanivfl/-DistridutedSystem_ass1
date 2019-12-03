@@ -24,20 +24,19 @@ public class MainWorkerClass {
         int sentiment;
 
 
-        // Get the (Manager -> Worker), (Worker -> Manager) SQS queues URLs from s3
+        // Get the (Manager -> Worker), (Worker -> Manager) SQS queues URLs
         String M2W_QueueURL = sqs.getURL(Constants.MANAGER_TO_WORKERS_QUEUE);
         String W2M_QueueURL = sqs.getURL(Constants.WORKERS_TO_MANAGER_QUEUE);
 
         while(true){
             //recieve reviews from Manager
             List<Message> managerMessages = sqs.receiveMessages(M2W_QueueURL, true, true);
+            System.out.println("worker recieved " + managerMessages.size() + " Messages");
             for (Message managerMsg: managerMessages) {
-                JSONObject msgObj = (JSONObject) jsonParser.parse(managerMsg.getBody());
-                if (Constants.TAGS.valueOf((String) msgObj.get(Constants.TAG)) != Constants.TAGS.MANAGER_2_WORKER){
-                    System.out.println("Got an unexpected message");
+                if (! Constants.validateMessage(managerMsg, Constants.TAGS.MANAGER_2_WORKER))
                     continue;
-                }
 
+                JSONObject msgObj = (JSONObject) jsonParser.parse(managerMsg.getBody());
                 review = (String) msgObj.get(Constants.REVIEW);
                 sentiment = sa.findSentiment(review);
 
@@ -55,7 +54,10 @@ public class MainWorkerClass {
             //delete recieved messages
             if(!managerMessages.isEmpty())
                 sqs.deleteMessage(managerMessages, M2W_QueueURL);
+
+
         }
+
     }
 
     private static String getEntities(SentimentAnalysisHandler sa, String review){
