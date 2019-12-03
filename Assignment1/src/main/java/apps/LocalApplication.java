@@ -1,8 +1,6 @@
 package apps;
 
-import com.amazonaws.services.ec2.model.Instance;
 import messages.Client2Manager;
-import messages.Client2Manager_init;
 import messages.Client2Manager_terminate;
 import messages.Manager2Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -50,7 +48,7 @@ public class LocalApplication {
      * starts the manager instanse and creates the queues
      * params: ec2, s3, sqs
      */
-    public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) throws IOException {
+    public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
 
         // start the manager
         ec2.launchEC2Instances(1, Constants.INSTANCE_TAG.TAG_MANAGER);
@@ -78,8 +76,6 @@ public class LocalApplication {
         BufferedReader reader = new BufferedReader(new InputStreamReader(summery));
         while(reader.ready()) {
             String line = reader.readLine();
-
-
 
             // parse line using JSON
             JSONParser parser = new JSONParser();
@@ -145,10 +141,6 @@ public class LocalApplication {
         String C2M_QueueURL = sqs.getURL(Constants.CLIENTS_TO_MANAGER_QUEUE);
         String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
 
-        // Send an initial message to the Manager
-        Client2Manager_init initMessage = new Client2Manager_init(bucket, reviewsPerWorker);
-        sqs.sendMessage(C2M_QueueURL, initMessage.stringifyUsingJSON());
-
         // Upload all the input files to S3
         String[] keyNamesIn = new String[num_files];
         String[] keyNamesOut = new String[num_files];
@@ -165,7 +157,7 @@ public class LocalApplication {
 
         // Send a message to the (Clients -> apps.Manager) SQS queue, stating the location of the files on S3
         for (int i=0; i<num_files; i++) {
-            Client2Manager messageClientToManager = new Client2Manager(bucket, keyNamesIn[i], keyNamesOut[i]);
+            Client2Manager messageClientToManager = new Client2Manager(bucket, keyNamesIn[i], keyNamesOut[i], reviewsPerWorker, num_files);
             sqs.sendMessage(C2M_QueueURL, messageClientToManager.stringifyUsingJSON());
         }
 

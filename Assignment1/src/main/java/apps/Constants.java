@@ -19,6 +19,7 @@ public class Constants {
     public static final String TEXT= "text";
     public static final String IN_BUCKET= "inBucket";
     public static final String IN_KEY= "inKey";
+    public static final String OUT_KEY= "outKey";
     public static final String SENTIMENT= "sentiment";
     public static final String ENTITIES= "entities";
     public static final String IS_SARCASTIC= "isSarcastic";
@@ -26,6 +27,7 @@ public class Constants {
     public static final String BUCKET= "bucket";
     public static final String TERMINATE= "terminate";
     public static final String REVIEWS_PER_WORKER= "reviewsPerWorker";
+    public static final String NUM_FILES= "numFiles";
 
     public static final String OUTPUT_KEY = "outputKey";
     public static final String COUNTER = "counter";

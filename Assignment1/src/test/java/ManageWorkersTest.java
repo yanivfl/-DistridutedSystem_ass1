@@ -21,10 +21,12 @@ public class ManageWorkersTest {
 
     public static void main(String[] args) {
         ConcurrentMap<String, ClientInfo> clientsInfo = new ConcurrentHashMap<>();
-        clientsInfo.put("bucket_1", new ClientInfo(new String[0], new String[0], 5));
-        Runnable manageWorkers = new ManageWorkers(clientsInfo);
-        Thread t1 = new Thread(manageWorkers);
-        t1.start();
+        clientsInfo.put("bucket_1", new ClientInfo(5, 5));
+
+
+//        Runnable manageWorkers = new ManageWorkers(clientsInfo);
+//        Thread t1 = new Thread(manageWorkers);
+//        t1.start();
     }
 }
 
