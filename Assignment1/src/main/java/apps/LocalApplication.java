@@ -2,7 +2,6 @@ package apps;
 
 import com.amazonaws.services.ec2.model.Instance;
 import messages.Client2Manager;
-import messages.Client2Manager_init;
 import messages.Client2Manager_terminate;
 import messages.Manager2Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -145,10 +144,6 @@ public class LocalApplication {
         String C2M_QueueURL = sqs.getURL(Constants.CLIENTS_TO_MANAGER_QUEUE);
         String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
 
-        // Send an initial message to the Manager
-        Client2Manager_init initMessage = new Client2Manager_init(myBucket, reviewsPerWorker);
-        sqs.sendMessage(C2M_QueueURL, initMessage.stringifyUsingJSON());
-
         // Upload all the input files to S3
         String[] keyNamesIn = new String[num_files];
         String[] keyNamesOut = new String[num_files];
@@ -165,7 +160,7 @@ public class LocalApplication {
 
         // Send a message to the (Clients -> apps.Manager) SQS queue, stating the location of the files on S3
         for (int i=0; i<num_files; i++) {
-            Client2Manager messageClientToManager = new Client2Manager(myBucket, keyNamesIn[i], keyNamesOut[i]);
+            Client2Manager messageClientToManager = new Client2Manager(myBucket, keyNamesIn[i], keyNamesOut[i], reviewsPerWorker, num_files);
             sqs.sendMessage(C2M_QueueURL, messageClientToManager.stringifyUsingJSON());
         }
 

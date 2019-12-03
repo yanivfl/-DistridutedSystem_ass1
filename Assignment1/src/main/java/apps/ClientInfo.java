@@ -19,9 +19,9 @@ public class ClientInfo {
     private AtomicInteger outputFilesCounter;
     private int reviewsPerWorker;
 
-    public ClientInfo(int reviewsPerWorker) {
+    public ClientInfo(int reviewsPerWorker, int numFiles) {
 
-        this.outputFilesCounter.set(0);
+        this.outputFilesCounter.set(numFiles);
         this.reviewsPerWorker = reviewsPerWorker;
         this.in2outMap = new ConcurrentHashMap<>();
     }
@@ -123,6 +123,8 @@ public class ClientInfo {
         long newCounter = -1; //default non zero value
         getLockForInputKey(inputKey).lock();
         try {
+
+            // TODO: consider using replace
         newCounter = (Long) in2outMap.get(inputKey).get(Constants.COUNTER) -1;
         in2outMap.get(inputKey).put(Constants.COUNTER, newCounter);
         } finally {
