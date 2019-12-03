@@ -21,6 +21,10 @@ public class Constants {
     public static final String ENTITIES= "entities";
     public static final String IS_SARCASTIC= "isSarcastic";
     public static final String RATING= "rating";
+    public static final String BUCKET= "bucket";
+    public static final String TERMINATE= "terminate";
+    public static final String REVIEWS_PER_WORKER= "reviewsPerWorker";
+
 
     public static final String CLIENTS_TO_MANAGER_QUEUE= "Clients2ManagerQueue";
     public static final String MANAGER_TO_CLIENTS_QUEUE= "Manager2ClientsQueue";

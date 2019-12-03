@@ -5,26 +5,21 @@ import edu.stanford.nlp.util.Pair;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class ClientInfo {
 
+    // the map is build from: <input key, <output key, count done reviews in this file>>
     private Map<String, Pair<String, Integer>> in2outMap;
     private int outputFileCounter;
     private int reviewsPerWorker;
 
-    public ClientInfo(String[] inputKeys, String[] outputKeys, int reviewsPerWorker) {
-        if (inputKeys.length != outputKeys.length) {
-            throw new RuntimeException("Different length of input and outputs");
-        }
+    public ClientInfo(int reviewsPerWorker) {
 
         this.outputFileCounter = 0;
         this.reviewsPerWorker = reviewsPerWorker;
         this.in2outMap = new HashMap <>();
-
-        for (int i=0; i<inputKeys.length; i++) {
-            Pair <String, Integer> outputAndCounter = new Pair<>(outputKeys[i], 0);
-            in2outMap.put(inputKeys[i], outputAndCounter);
-        }
     }
 
     public String getOutputKeyByInputKey(String inputKey) {
@@ -48,5 +43,10 @@ public class ClientInfo {
 
     public int getReviewsPerWorker() {
         return reviewsPerWorker;
+    }
+
+    public void putInputOutputKeys(String inputKey, String outputKey) {
+        Pair<String, Integer> pair = new Pair<>(outputKey, 0);
+        in2outMap.put(inputKey, pair);
     }
 }
