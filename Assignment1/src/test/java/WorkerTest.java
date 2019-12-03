@@ -41,13 +41,13 @@ public class WorkerTest {
             Thread thread = new Thread(worker);
             System.out.println("Created Thread");
 
-            M2W_QueueURL = sqs.createSQSQueue(Constants.MANAGER_TO_WORKERS_QUEUE, false);
-            W2M_QueueURL = sqs.createSQSQueue(Constants.WORKERS_TO_MANAGER_QUEUE, false);
+            M2W_QueueURL = sqs.createSQSQueue(Constants.MANAGER_TO_WORKERS_QUEUE, true);
+            W2M_QueueURL = sqs.createSQSQueue(Constants.WORKERS_TO_MANAGER_QUEUE, true);
 
             System.out.println("Created Queues");
 
-            thread.start();
-            System.out.println("Worker is running");
+//            thread.start();
+
 
             //test
             JSONParser parser = new JSONParser();
@@ -76,16 +76,23 @@ public class WorkerTest {
             reader.close();
 
             System.out.println("sent all messages");
-            System.out.println("sleeping for 10 seconds");
-            Thread.sleep(10000);
-            List<Message> workerMessages = sqs.receiveMessages(W2M_QueueURL, false, true);
-            for (Message managerMsg : workerMessages) {
-                System.out.println(managerMsg.getBody());
+            while(true){
+                List<Message> workerMessages = sqs.receiveMessages(W2M_QueueURL, false, false);
+                System.out.println("test recieved " + workerMessages.size() + " Messages");
+                for (Message workerMsg : workerMessages) {
+                    System.out.println(workerMsg.getBody());
+                }
+
+                //delete recieved messages
+                if(!workerMessages.isEmpty())
+                    sqs.deleteMessage(workerMessages, W2M_QueueURL);
+
             }
+
 //            thread.interrupt();
 
-        } catch (InterruptedException consumed) {
-            System.out.println("thread exited");
+//        } catch (InterruptedException consumed) {
+//            System.out.println("thread exited");
         } catch (AmazonServiceException ase) {
             System.out.println("Caught an AmazonServiceException, which means your request made it " +
                     "to Amazon SQS, but was rejected with an error response for some reason.");
