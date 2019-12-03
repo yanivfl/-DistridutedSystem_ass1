@@ -2,52 +2,139 @@ package apps;
 
 
 import edu.stanford.nlp.util.Pair;
+import handlers.S3Handler;
 
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ClientInfo {
 
     // the map is build from: <input key, <output key, count done reviews in this file>>
-    private Map<String, Pair<String, Integer>> in2outMap;
-    private int outputFileCounter;
+    private ConcurrentMap<String, Map <String, Object>>  in2outMap;
+    private AtomicInteger outputFilesCounter;
     private int reviewsPerWorker;
 
     public ClientInfo(int reviewsPerWorker) {
 
-        this.outputFileCounter = 0;
+        this.outputFilesCounter.set(0);
         this.reviewsPerWorker = reviewsPerWorker;
-        this.in2outMap = new HashMap <>();
+        this.in2outMap = new ConcurrentHashMap<>();
+    }
+
+    public String getLocalFileName(String inBucket, String outkey){
+        return inBucket + "_" + outkey;
     }
 
 
-    public String getOutputKeyByInputKey(String inputKey) {
-        Pair <String, Integer> outputAndCounter = in2outMap.get(inputKey);
-        return outputAndCounter.first;
+
+
+    private ReentrantLock getLockForInputKey(String inputKey) {
+        return (ReentrantLock) in2outMap.get(inputKey).get(Constants.LOCK);
     }
 
-    public int getOutputKeyCountbyInputKey(String inputKey) {
-        Pair <String, Integer> outputAndCounter = in2outMap.get(inputKey);
-        return outputAndCounter.second();
+    private boolean isNewMessage(String localFileName, String msg) throws IOException {
+        if(! new File(localFileName).isFile()){
+            return true;
+        }
+
+        BufferedReader outputfileReader = new BufferedReader(new FileReader(localFileName));;
+        while (true) {
+            String line = outputfileReader.readLine();
+            if (line.equals(msg)){
+                System.out.println("msg already exists in file");
+                return false;
+            }
+            if (line == null) return true;
+        }
     }
 
-    public void incOutputKeyCountbyInputKey(String inputKey, int incVal) {
-        Pair <String, Integer> outputAndCounter = in2outMap.get(inputKey);
-        in2outMap.replace(inputKey, new Pair(outputAndCounter.first(), outputAndCounter.second() + incVal));
+    private void appendToLocalFile(String localFileName, String msg){
+        try(FileWriter fw = new FileWriter(localFileName, true);
+            BufferedWriter bw = new BufferedWriter(fw);
+            PrintWriter out = new PrintWriter(bw))
+        {
+            out.println(msg);
+        } catch (IOException e) {
+            throw new RuntimeException("couldn't write \n" + msg + "\n to localFileName " + localFileName + "\n with exception" + e);
+        }
     }
 
-    public int getOutputFileCounter() {
-        return outputFileCounter;
+    public boolean updateLocalOutputFile(String inputBucket, String inputKey, String msg) {
+        if(getLockForInputKey(inputKey).isHeldByCurrentThread()){
+            System.out.println("Entering updateLocalOutputFile with lock");
+            getLockForInputKey(inputKey).unlock();
+        }
+        boolean isUpdated = false;
+        getLockForInputKey(inputKey).lock();
+        try{
+            String outkey = (String) in2outMap.get(inputKey).get(Constants.OUTPUT_KEY);
+            String localFileName = getLocalFileName(inputBucket,outkey);
+            if (isNewMessage(localFileName, msg)){
+                appendToLocalFile(localFileName, msg);
+                isUpdated = true;
+            }
+
+        } finally {
+            getLockForInputKey(inputKey).unlock();
+            return isUpdated;
+        }
+    }
+
+//    public long incOutputCounter(String inputKey) {
+//        if(getLockForInputKey(inputKey).isHeldByCurrentThread()){
+//            System.out.println("Entering incOutputCounter with lock");
+//            getLockForInputKey(inputKey).unlock();
+//        }
+//        long newCounter = -1; //default non zero value
+//        getLockForInputKey(inputKey).lock();
+//        try {
+//            newCounter = (Long) in2outMap.get(inputKey).get(Constants.COUNTER) +1;
+//            in2outMap.get(inputKey).put(Constants.COUNTER, newCounter);
+//        } finally {
+//            getLockForInputKey(inputKey).unlock();
+//            return newCounter ;
+//        }
+//
+//    }
+
+    public long decOutputCounter(String inputKey) {
+        if(getLockForInputKey(inputKey).isHeldByCurrentThread()){
+            System.out.println("Entering decOutputCounter with lock");
+            getLockForInputKey(inputKey).unlock();
+        }
+        long newCounter = -1; //default non zero value
+        getLockForInputKey(inputKey).lock();
+        try {
+        newCounter = (Long) in2outMap.get(inputKey).get(Constants.COUNTER) -1;
+        in2outMap.get(inputKey).put(Constants.COUNTER, newCounter);
+        } finally {
+            getLockForInputKey(inputKey).unlock();
+            return newCounter ;
+        }
+    }
+
+    public int incOutputFiles() {
+        return outputFilesCounter.incrementAndGet();
+    }
+
+    public int decOutputFiles() {
+        return outputFilesCounter.decrementAndGet();
     }
 
     public int getReviewsPerWorker() {
         return reviewsPerWorker;
     }
 
-    public void putInputOutputKeys(String inputKey, String outputKey) {
-        Pair<String, Integer> pair = new Pair<>(outputKey, 0);
-        in2outMap.put(inputKey, pair);
+    public void putOutputKey(String inputKey, String outputKey, long counter) {
+        Map outputDict = new HashMap<>();
+        outputDict.put(Constants.OUTPUT_KEY, outputKey);
+        outputDict.put(Constants.COUNTER, counter);
+        outputDict.put(Constants.LOCK, new ReentrantLock());
+        in2outMap.put(inputKey, outputDict);
     }
 }

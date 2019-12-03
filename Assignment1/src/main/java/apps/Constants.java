@@ -27,6 +27,10 @@ public class Constants {
     public static final String TERMINATE= "terminate";
     public static final String REVIEWS_PER_WORKER= "reviewsPerWorker";
 
+    public static final String OUTPUT_KEY = "outputKey";
+    public static final String COUNTER = "counter";
+    public static final String LOCK = "lock";
+
 
     public static final String CLIENTS_TO_MANAGER_QUEUE= "Clients2ManagerQueue";
     public static final String MANAGER_TO_CLIENTS_QUEUE= "Manager2ClientsQueue";
@@ -55,6 +59,13 @@ public class Constants {
         }
         return buf.toString("UTF-8");
     }
+
+    /**
+     * validates Message and returnes Json body
+     * @param msg
+     * @param tag
+     * @return Json body of Message if validation was successful
+     */
 
     public static JSONObject validateMessageAndReturnObj(Message msg , TAGS tag){
         JSONParser jsonParser = new JSONParser();

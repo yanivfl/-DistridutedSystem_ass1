@@ -3,13 +3,12 @@ import com.amazonaws.services.sqs.model.Message;
 import handlers.EC2Handler;
 import handlers.S3Handler;
 import handlers.SQSHandler;
-import handlers.SentimentAnalysisHandler;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /*
@@ -47,7 +46,10 @@ public class ManageWorkers implements Runnable {
                 JSONObject msgObj= Constants.validateMessageAndReturnObj(workerMsg , Constants.TAGS.WORKER_2_MANAGER);
                 if(msgObj==null)
                     continue;
-
+                ClientInfo clientInfo = clientsInfo.get((String) msgObj.get(Constants.IN_BUCKET));
+                clientInfo.updateLocalOutputFile(   (String) msgObj.get(Constants.IN_BUCKET),
+                                                    (String) msgObj.get(Constants.IN_KEY),
+                                                     msgObj.toJSONString());
 
 
 
@@ -60,6 +62,8 @@ public class ManageWorkers implements Runnable {
         }
 
     }
+
+
 
 
 }

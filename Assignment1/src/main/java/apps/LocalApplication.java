@@ -85,7 +85,7 @@ public class LocalApplication {
             JSONParser parser = new JSONParser();
             JSONObject obj = (JSONObject) parser.parse(line);
 
-            if (Constants.TAGS.valueOf((String) obj.get("tag")) != Constants.TAGS.SUMMERY_LINE)
+            if (Constants.TAGS.valueOf((String) obj.get("tag")) != Constants.TAGS.WORKER_2_MANAGER)
                 throw new RuntimeException("Got an unexpected message - couldn't create an HTML file");
 
             String review = (String) obj.get(Constants.REVIEW);

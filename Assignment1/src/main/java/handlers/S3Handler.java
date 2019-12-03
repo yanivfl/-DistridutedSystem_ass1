@@ -126,7 +126,23 @@ public class S3Handler {
         }
     }
 
-    public void downloadFile(String bucketName, String key) throws IOException {
+
+    public BufferedReader downloadFile(String bucketName, String key) throws IOException {
+        try {
+            System.out.println("Downloading an object");
+            S3Object object = this.s3.getObject(new GetObjectRequest(bucketName, key));
+            System.out.println("Content-Type: " + object.getObjectMetadata().getContentType());
+            return new BufferedReader(new InputStreamReader(object.getObjectContent()));
+        } catch (AmazonServiceException ase) {
+            printAseException(ase);
+        } catch (AmazonClientException ace) {
+            printAceException(ace);
+        }
+        return null;
+    }
+
+
+    public void displayFile(String bucketName, String key) throws IOException {
         /*
          * Download an object - When you download an object, you get all of
          * the object's metadata and a stream from which to read the contents.
@@ -141,7 +157,7 @@ public class S3Handler {
          */
         try {
 
-            System.out.println("Downloading an object");
+            System.out.println("Displaying an object");
             S3Object object = this.s3.getObject(new GetObjectRequest(bucketName, key));
             System.out.println("Content-Type: " + object.getObjectMetadata().getContentType());
             displayTextInputStream(object.getObjectContent());
