@@ -3,6 +3,7 @@ import com.amazonaws.services.sqs.model.Message;
 import handlers.EC2Handler;
 import handlers.S3Handler;
 import handlers.SQSHandler;
+import messages.Manager2Client;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -46,13 +47,23 @@ public class ManageWorkers implements Runnable {
                 JSONObject msgObj= Constants.validateMessageAndReturnObj(workerMsg , Constants.TAGS.WORKER_2_MANAGER);
                 if(msgObj==null)
                     continue;
-                ClientInfo clientInfo = clientsInfo.get((String) msgObj.get(Constants.IN_BUCKET));
-                clientInfo.updateLocalOutputFile(   (String) msgObj.get(Constants.IN_BUCKET),
-                                                    (String) msgObj.get(Constants.IN_KEY),
-                                                     msgObj.toJSONString());
+                String inBucket = (String) msgObj.get(Constants.IN_BUCKET);
+                String inKey = (String) msgObj.get(Constants.IN_KEY);
 
-
-
+                ClientInfo clientInfo = clientsInfo.get(inBucket);
+                boolean isUpdated = clientInfo.updateLocalOutputFile(inBucket,inKey, msgObj.toJSONString());
+                if(isUpdated){
+                   long reviewsLeft = clientInfo.decOutputCounter(inKey);
+                   if (reviewsLeft == 0){
+                       s3.uploadFileToS3(inBucket, clientInfo.getLocalFileName(inBucket,inKey));
+                      int outputFilesLeft = clientInfo.decOutputFiles();
+                      if (outputFilesLeft == 0){
+                          sqs.sendMessage(M2C_QueueURL,
+                                  new Manager2Client(true, inBucket )
+                                          .stringifyUsingJSON());
+                      }
+                   }
+                }
             }
 
             //delete recieved messages

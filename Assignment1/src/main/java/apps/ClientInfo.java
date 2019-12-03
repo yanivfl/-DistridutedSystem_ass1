@@ -26,7 +26,8 @@ public class ClientInfo {
         this.in2outMap = new ConcurrentHashMap<>();
     }
 
-    public String getLocalFileName(String inBucket, String outkey){
+    public String getLocalFileName(String inBucket, String inputKey){
+        String outkey = (String) in2outMap.get(inputKey).get(Constants.OUTPUT_KEY);
         return inBucket + "_" + outkey;
     }
 
@@ -72,8 +73,7 @@ public class ClientInfo {
         boolean isUpdated = false;
         getLockForInputKey(inputKey).lock();
         try{
-            String outkey = (String) in2outMap.get(inputKey).get(Constants.OUTPUT_KEY);
-            String localFileName = getLocalFileName(inputBucket,outkey);
+            String localFileName = getLocalFileName(inputBucket,inputKey);
             if (isNewMessage(localFileName, msg)){
                 appendToLocalFile(localFileName, msg);
                 isUpdated = true;
@@ -118,9 +118,9 @@ public class ClientInfo {
         }
     }
 
-    public int incOutputFiles() {
-        return outputFilesCounter.incrementAndGet();
-    }
+//    public int incOutputFiles() {
+//        return outputFilesCounter.incrementAndGet();
+//    }
 
     public int decOutputFiles() {
         return outputFilesCounter.decrementAndGet();

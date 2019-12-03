@@ -139,14 +139,14 @@ public class LocalApplication {
 
         // Create a bucket for this local application - the bucket name is unique for this local app
         UUID appID = UUID.randomUUID();
-        String bucket = s3.createBucket(appID.toString());
+        String myBucket = s3.createBucket(appID.toString());
 
         // Get the (Clients -> Manager), (Manager -> Clients) SQS queues URLs
         String C2M_QueueURL = sqs.getURL(Constants.CLIENTS_TO_MANAGER_QUEUE);
         String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
 
         // Send an initial message to the Manager
-        Client2Manager_init initMessage = new Client2Manager_init(bucket, reviewsPerWorker);
+        Client2Manager_init initMessage = new Client2Manager_init(myBucket, reviewsPerWorker);
         sqs.sendMessage(C2M_QueueURL, initMessage.stringifyUsingJSON());
 
         // Upload all the input files to S3
@@ -157,7 +157,7 @@ public class LocalApplication {
             String fileName = args[i];
 
             // upload the input file
-            keyNamesIn[i] = s3.uploadFileToS3(bucket, fileName);
+            keyNamesIn[i] = s3.uploadFileToS3(myBucket, fileName);
 
             // this will be the keyName of the output file
             keyNamesOut[i] = s3.getAwsFileName(fileName) + "out";
@@ -165,7 +165,7 @@ public class LocalApplication {
 
         // Send a message to the (Clients -> apps.Manager) SQS queue, stating the location of the files on S3
         for (int i=0; i<num_files; i++) {
-            Client2Manager messageClientToManager = new Client2Manager(bucket, keyNamesIn[i], keyNamesOut[i]);
+            Client2Manager messageClientToManager = new Client2Manager(myBucket, keyNamesIn[i], keyNamesOut[i]);
             sqs.sendMessage(C2M_QueueURL, messageClientToManager.stringifyUsingJSON());
         }
 
@@ -175,8 +175,10 @@ public class LocalApplication {
         while (!done) {
             List<Message> doneMessages = sqs.receiveMessages(M2C_QueueURL, false, false);
             for (Message msg: doneMessages) {
-                Manager2Client msgDone = new Manager2Client(msg.getBody());
-                if (msgDone.isDone() && msgDone.getDoneID().equals(appID))
+                JSONObject msgObj= Constants.validateMessageAndReturnObj(msg , Constants.TAGS.MANAGER_2_CLIENT);
+                boolean isDoneJson = (boolean)msgObj.get(Constants.IS_DONE);
+                String inBucketJson = (String)msgObj.get(Constants.IN_BUCKET);
+                if ( isDoneJson && inBucketJson.equals(myBucket))
                     done = true;
             }
         }
@@ -184,7 +186,7 @@ public class LocalApplication {
         // Download the summary file from S3
         for (int i=0; i<num_files; i++) {
             String keyNameOut = keyNamesOut[i];
-            S3Object object = s3.getS3().getObject(new GetObjectRequest(bucket, keyNameOut));
+            S3Object object = s3.getS3().getObject(new GetObjectRequest(myBucket, keyNameOut));
             createHtml(appID, i, object.getObjectContent());
         }
 
@@ -196,10 +198,10 @@ public class LocalApplication {
 
         // delete all input files, output files and the bucket from S3 for this local application
         for (int i=0; i<num_files; i++) {
-            s3.deleteFile(bucket, keyNamesIn[i]);
-            s3.deleteFile(bucket, keyNamesOut[i]);
+            s3.deleteFile(myBucket, keyNamesIn[i]);
+            s3.deleteFile(myBucket, keyNamesOut[i]);
         }
-        s3.deleteBucket(bucket);
+        s3.deleteBucket(myBucket);
 
     }
 }
