@@ -24,5 +24,8 @@ public class Manager {
         // TODO: remove all execptions from the project!
 
 
+        // TODO: when terminates, delete all queues
+
+
     }
 }

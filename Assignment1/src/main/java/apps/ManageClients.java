@@ -134,7 +134,6 @@ public class ManageClients implements Runnable {
         // For each line of the file, go through the reviews array and for each review create a message to the workers and add it to the queue
         sendMessagesToWorkers(outputReader, M2W_QueueURL, bucket, inKey);
 
-        // TODO 3
         addWorkersIfNeeded(reviewsPerWorker, reviewsCounter);
     }
 

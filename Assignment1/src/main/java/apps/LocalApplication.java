@@ -1,9 +1,7 @@
 package apps;
 
-import com.amazonaws.services.ec2.model.Instance;
 import messages.Client2Manager;
 import messages.Client2Manager_terminate;
-import messages.Manager2Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.sqs.model.Message;
@@ -17,6 +15,7 @@ import org.json.simple.parser.ParseException;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,19 +30,6 @@ import java.util.UUID;
  */
 
 public class LocalApplication {
-
-    public static void createQueueAndUpload(S3Handler s3, SQSHandler sqs, String queueName, String bucket, String key, boolean shortPolling) throws IOException {
-
-        // start SQS queue
-        String QueueURL = sqs.createSQSQueue(queueName, true);
-
-        // create a file containing the queue URL (file name is the key)
-        FileOutputStream URLfile = new FileOutputStream(key);
-        URLfile.write(QueueURL.getBytes());
-
-        // upload file to s3 - save the queue URL in a known location (known in the constants class)
-        s3.uploadFileToS3(bucket, key);
-    }
 
     /**
      * starts the manager instanse and creates the queues
@@ -167,15 +153,23 @@ public class LocalApplication {
         // Check on the (Manager -> Clients) SQS queue for a message indicating the process is done and the response
         // (the summary file) is available on S3.
         boolean done = false;
+        List<Message> doneLst = new LinkedList<>();
         while (!done) {
             List<Message> doneMessages = sqs.receiveMessages(M2C_QueueURL, false, false);
             for (Message msg: doneMessages) {
                 JSONObject msgObj= Constants.validateMessageAndReturnObj(msg , Constants.TAGS.MANAGER_2_CLIENT);
-                boolean isDoneJson = (boolean)msgObj.get(Constants.IS_DONE);
-                String inBucketJson = (String)msgObj.get(Constants.IN_BUCKET);
-                if ( isDoneJson && inBucketJson.equals(myBucket))
-                    done = true;
+                if (msgObj != null) {
+                    boolean isDoneJson = (boolean) msgObj.get(Constants.IS_DONE);
+                    String inBucketJson = (String) msgObj.get(Constants.IN_BUCKET);
+                    if (isDoneJson && inBucketJson.equals(myBucket)) {
+                        doneLst.add(msg);
+                        done = true;
+                    }
+                }
             }
+            //delete received messages (after handling them)
+            if(!doneLst.isEmpty())
+                sqs.deleteMessage(doneLst, M2C_QueueURL);
         }
 
         // Download the summary file from S3
