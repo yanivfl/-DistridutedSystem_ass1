@@ -28,6 +28,7 @@ public class Constants {
     public static final String TERMINATE= "terminate";
     public static final String REVIEWS_PER_WORKER= "reviewsPerWorker";
     public static final String NUM_FILES= "numFiles";
+    public static final String IS_DONE = "isDone";
 
     public static final String OUTPUT_KEY = "outputKey";
     public static final String COUNTER = "counter";
