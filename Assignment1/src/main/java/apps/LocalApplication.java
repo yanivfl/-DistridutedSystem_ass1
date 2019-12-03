@@ -146,7 +146,7 @@ public class LocalApplication {
         String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
 
         // Send an initial message to the Manager
-        Client2Manager_init initMessage = new Client2Manager_init(bucket, terminate, reviewsPerWorker);
+        Client2Manager_init initMessage = new Client2Manager_init(bucket, reviewsPerWorker);
         sqs.sendMessage(C2M_QueueURL, initMessage.stringifyUsingJSON());
 
         // Upload all the input files to S3

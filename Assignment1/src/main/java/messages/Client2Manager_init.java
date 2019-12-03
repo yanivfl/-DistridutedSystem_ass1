@@ -9,14 +9,12 @@ public class Client2Manager_init extends Base {
 
     private Constants.TAGS tag;
     private String bucket;
-    private boolean terminate;
     private long reviewsPerWorker;
 
     /** Normal constructor */
-    public Client2Manager_init(String bucket, boolean terminate, long reviewsPerWorker) {
+    public Client2Manager_init(String bucket, long reviewsPerWorker) {
         this.tag = Constants.TAGS.CLIENT_2_MANAGER_init;
         this.bucket = bucket;
-        this.terminate = terminate;
         this.reviewsPerWorker = reviewsPerWorker;
     }
 
@@ -30,7 +28,6 @@ public class Client2Manager_init extends Base {
             throw new RuntimeException("Got an unexpected message");
 
         this.bucket = (String) obj.get("bucket");
-        this.terminate = (Boolean) obj.get("terminate");
         this.reviewsPerWorker = (Long) obj.get("reviewsPerWorker");
     }
 
@@ -39,7 +36,6 @@ public class Client2Manager_init extends Base {
         JSONObject obj = new JSONObject();
         obj.put("tag", this.tag.toString());
         obj.put("bucket", this.bucket);
-        obj.put("terminate", this.terminate);
         obj.put("reviewsPerWorker", this.reviewsPerWorker);
         return obj.toJSONString();
     }
@@ -49,7 +45,6 @@ public class Client2Manager_init extends Base {
     public String toString() {
         return "Client2Manager_init{" +
                 "bucket='" + bucket + '\'' +
-                ", terminate='" + terminate + '\'' +
                 ", reviewsPerWorker='" + reviewsPerWorker + '\'' +
                 '}';
     }
