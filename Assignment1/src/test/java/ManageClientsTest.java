@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -27,6 +28,7 @@ public class ManageClientsTest {
     private static ConcurrentMap<String, ClientInfo> clientsInfo;
     private static AtomicInteger workersCount;
     private static ReentrantLock workersCountLock;
+    private static AtomicBoolean terminate;
     private static EC2Handler ec2;
     private static S3Handler s3;
     private static SQSHandler sqs;
@@ -63,6 +65,7 @@ public class ManageClientsTest {
         clientsInfo = new ConcurrentHashMap<>();
         workersCount = new AtomicInteger(0);
         workersCountLock = new ReentrantLock();
+        terminate = new AtomicBoolean(false);
         String myBucket = null;
         String keyJson1 = null;
         String keyJson2 = null;
@@ -83,7 +86,7 @@ public class ManageClientsTest {
             sqs.sendMessage(C2M_QueueURL, messageClientToManager.stringifyUsingJSON());
 
             // Create manageClients Runnable
-            Runnable manageClients = new ManageClients(clientsInfo, workersCount, workersCountLock, ec2, s3, sqs);
+            Runnable manageClients = new ManageClients(clientsInfo, workersCount, workersCountLock, terminate, ec2, s3, sqs);
             Thread t1 = new Thread(manageClients);
             t1.start();
             t1.join();
@@ -113,6 +116,7 @@ public class ManageClientsTest {
         clientsInfo = new ConcurrentHashMap<>();
         workersCount = new AtomicInteger(5);
         workersCountLock = new ReentrantLock();
+        terminate = new AtomicBoolean(false);
         String myBucket = null;
         String keyJson1 = null;
         String keyJson2 = null;
@@ -132,7 +136,7 @@ public class ManageClientsTest {
             sqs.sendMessage(C2M_QueueURL, messageClientToManager2.stringifyUsingJSON());
 
             // Create manageClients Runnable
-            ManageClients manageClients = new ManageClients(clientsInfo, workersCount, workersCountLock, ec2, s3, sqs);
+            ManageClients manageClients = new ManageClients(clientsInfo, workersCount, workersCountLock, terminate, ec2, s3, sqs);
 
             JSONParser jsonParser = new JSONParser();
             JSONObject msgObj;

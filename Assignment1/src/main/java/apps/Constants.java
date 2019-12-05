@@ -14,6 +14,7 @@ public class Constants {
 
     public static final String AMI = "ami-b66ed3de";
     public static final String TAG = "tag";
+    public static final String SENDER_BUCKET = "senderBucket";
     public static final String REVIEWS= "reviews";
     public static final String REVIEW= "review";
     public static final String TEXT= "text";

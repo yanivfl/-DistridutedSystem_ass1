@@ -43,12 +43,12 @@ public class Client2Manager extends Base {
     /** Turns the Client2Manager to string */
     public String stringifyUsingJSON() {
         JSONObject obj = new JSONObject();
-        obj.put("tag", this.tag.toString());
-        obj.put("bucket", this.bucket);
-        obj.put("inKey", this.inKey);
-        obj.put("outKey", this.outKey);
-        obj.put("reviewsPerWorker", this.reviewsPerWorker);
-        obj.put("numFiles", this.numFiles);
+        obj.put(Constants.TAG, this.tag.toString());
+        obj.put(Constants.BUCKET, this.bucket);
+        obj.put(Constants.IN_KEY, this.inKey);
+        obj.put(Constants.OUTPUT_KEY, this.outKey);
+        obj.put(Constants.REVIEWS_PER_WORKER, this.reviewsPerWorker);
+        obj.put(Constants.NUM_FILES, this.numFiles);
         return obj.toJSONString();
     }
 

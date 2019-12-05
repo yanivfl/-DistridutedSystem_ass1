@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -30,15 +31,18 @@ public class ManageClients implements Runnable {
     private ConcurrentMap<String, ClientInfo> clientsInfo;
     private AtomicInteger workersCount;
     private ReentrantLock workersCountLock;
+    private AtomicBoolean terminate;
     private EC2Handler ec2;
     private S3Handler s3;
     private SQSHandler sqs;
 
     public ManageClients(ConcurrentMap<String, ClientInfo> clientInfo, AtomicInteger workersCount,
-                         ReentrantLock workersCountLock, EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
+                         ReentrantLock workersCountLock, AtomicBoolean terminate,
+                         EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
         this.clientsInfo = clientInfo;
         this.workersCount = workersCount;
         this.workersCountLock = workersCountLock;
+        this.terminate = terminate;
         this.ec2 = ec2;
         this.s3 = s3;
         this.sqs = sqs;
@@ -110,6 +114,10 @@ public class ManageClients implements Runnable {
         long reviewsPerWorker = (Long) msgObj.get(Constants.REVIEWS_PER_WORKER);
         int numFiles = ((Long) msgObj.get(Constants.NUM_FILES)).intValue();
 
+        // If in termination mode and this is a new client, do not accept it's messages (ignore)
+        if (!clientsInfo.containsKey(bucket))
+            return;
+
         // Initialize this local app client in the clients info map if it wasn't initialized yet.
         // (first message initialize the ClientInfo)
         ClientInfo localApp = new ClientInfo((int)reviewsPerWorker, numFiles);
@@ -141,16 +149,12 @@ public class ManageClients implements Runnable {
     }
 
     /**
-     * 1. Does not accept any more input files from local applications.
-     * 2. Serve the local application that sent the termination message.
-     * 3. Waits for all the workers to finish their job, and then terminates them.
-     * 4. Creates response messages for the jobs, if needed.
-     * 5. Terminates.
+     * Starts the termination process.
      */
-    public void terminateMessage(JSONObject msgObj) {
-        //TODO
-    }
 
+    public void terminateMessage(JSONObject msgObj) {
+        terminate.set(true);
+    }
 
     @Override
     public void run() {
@@ -162,7 +166,9 @@ public class ManageClients implements Runnable {
         // Go through the (Clients -> Manager) queue and handler each message.
         // Continue until termination
         JSONObject jsonObject;
-        while (true) {
+        boolean running = true;
+        while (running) {
+            System.out.println("Checking queue for messages from clients");
             List<Message> messages = sqs.receiveMessages(C2M_QueueURL, false, false);
             for (Message message: messages) {
                 jsonObject = Constants.validateMessageAndReturnObj(message, Constants.TAGS.CLIENT_2_MANAGER, false);
@@ -182,6 +188,12 @@ public class ManageClients implements Runnable {
                 //delete received messages (after handling them)
                 if (!messages.isEmpty())
                     sqs.deleteMessage(messages, C2M_QueueURL);
+            }
+
+            // If manager is in termination mode and finished handling all clients (existing prior to the termination message)
+            // then this thread has finish
+            if (clientsInfo.isEmpty() && terminate.get()) {
+                running = false;
             }
         }
     }

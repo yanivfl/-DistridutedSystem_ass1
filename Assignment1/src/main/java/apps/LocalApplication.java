@@ -181,7 +181,7 @@ public class LocalApplication {
 
         // Send a termination message to the Manager if it was supplied as one of its input arguments.
         if (terminate) {
-            Client2Manager_terminate terminateMsg = new Client2Manager_terminate(appID);
+            Client2Manager_terminate terminateMsg = new Client2Manager_terminate(myBucket);
             sqs.sendMessage(C2M_QueueURL, terminateMsg.stringifyUsingJSON());
         }
 

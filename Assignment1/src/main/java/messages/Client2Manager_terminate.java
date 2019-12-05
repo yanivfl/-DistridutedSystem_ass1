@@ -11,35 +11,23 @@ import java.util.UUID;
 public class Client2Manager_terminate extends Base {
 
     private Constants.TAGS tag;
-    private UUID senderID;
+    private String senderBucket;
 
     /** Normal constructor */
-    public Client2Manager_terminate(UUID senderID) {
+    public Client2Manager_terminate(String senderID) {
         this.tag = Constants.TAGS.CLIENT_2_MANAGER_terminate;
-        this.senderID = senderID;
+        this.senderBucket = senderID;
     }
 
-    /** Unique constructor - turn the string to Client2Manager_terminate (assumes the msg was JSON stringify) */
-    public Client2Manager_terminate(String msg) throws ParseException {
-        JSONParser parser = new JSONParser();
-        JSONObject obj = (JSONObject) parser.parse(msg);
-
-        this.tag = Constants.TAGS.valueOf((String) obj.get("tag"));
-        if (this.tag != Constants.TAGS.CLIENT_2_MANAGER_terminate)
-            throw new RuntimeException("Got an unexpected message");
-
-        this.senderID = UUID.fromString((String) obj.get("senderID"));
-    }
-
-    public UUID getSenderID() {
-        return senderID;
+    public String getSenderBucket() {
+        return senderBucket;
     }
 
     /** Turns the Client2Manager_terminate to string */
     public String stringifyUsingJSON() {
         JSONObject obj = new JSONObject();
-        obj.put("tag", this.tag.toString());
-        obj.put("senderID", this.senderID.toString());
+        obj.put(Constants.TAG, this.tag.toString());
+        obj.put(Constants.SENDER_BUCKET, this.senderBucket);
         return obj.toJSONString();
     }
 
@@ -47,7 +35,7 @@ public class Client2Manager_terminate extends Base {
     @Override
     public String toString() {
         return "Client2Manager_terminate{" +
-                ", senderID=" + senderID +
+                ", senderID=" + senderBucket +
                 '}';
     }
 }
