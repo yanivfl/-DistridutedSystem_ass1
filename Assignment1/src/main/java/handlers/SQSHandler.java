@@ -97,10 +97,12 @@ public class SQSHandler {
         this.sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageRecieptHandle));
     }
 
-    public void listQueues() {
-        for (String queueUrl : sqs.listQueues().getQueueUrls()) {
+    public List<String> listQueues() {
+        List<String> urls = sqs.listQueues().getQueueUrls();
+        for (String queueUrl : urls) {
             System.out.println("  QueueUrl: " + queueUrl);
         }
+        return urls;
     }
 
 }

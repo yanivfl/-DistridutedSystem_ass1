@@ -3,6 +3,7 @@ package handlers;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 import apps.Constants;
@@ -109,7 +110,7 @@ public class EC2Handler {
      * params: ec2, tag
      * returns: True: There is an instance with the requested tag , False: otherwise
      */
-    public boolean isTagExists(Constants.INSTANCE_TAG tag) throws InterruptedException {
+    public boolean isTagExists(Constants.INSTANCE_TAG tag) {
         boolean done = false;   // done = True - when finished going over all the instances.
         DescribeInstancesRequest instRequest = new DescribeInstancesRequest();
 
@@ -169,6 +170,53 @@ public class EC2Handler {
         }
 
         return false;
+    }
+
+    /** List all ec2 instances with their status and tags */
+    public List<Instance> listInstances() {
+        List<Instance> instances = new LinkedList<>();
+        boolean done = false;   // done = True - when finished going over all the instances.
+        DescribeInstancesRequest instRequest = new DescribeInstancesRequest();
+
+        try {
+            while (!done) {
+
+                // Go through all instances
+                DescribeInstancesResult response = this.ec2.describeInstances(instRequest);
+
+                for (Reservation reservation : response.getReservations()) {
+                    for (Instance instance : reservation.getInstances()) {
+
+                        String state = instance.getState().getName();
+
+                        StringBuilder tagsBuilder = new StringBuilder();
+                        tagsBuilder.append("tags: ");
+                        Filter filter = new Filter().withName("resource-id").withValues(instance.getInstanceId());
+                        DescribeTagsRequest tagRequest = new DescribeTagsRequest().withFilters(filter);
+                        DescribeTagsResult tagResult = this.ec2.describeTags(tagRequest);
+                        List<TagDescription> tags = tagResult.getTags();
+                        for (TagDescription tagDesc : tags) {
+                            tagsBuilder.append(tagDesc.getValue());
+                            tagsBuilder.append(" ");
+                        }
+
+                        System.out.println("instance: " + instance.getInstanceId() + ", state: " + state + ", with tags: " + tagsBuilder.toString());
+                        instances.add(instance);
+                    }
+                }
+
+                instRequest.setNextToken(response.getNextToken());
+                if (response.getNextToken() == null) {
+                    done = true;
+                }
+            }
+            return instances;
+        }
+
+        catch (AmazonServiceException ase) {
+            printASEException(ase);
+            return null;
+        }
     }
 
     /**

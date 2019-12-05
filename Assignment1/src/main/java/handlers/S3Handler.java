@@ -1,6 +1,7 @@
 package handlers;
 
 import java.io.*;
+import java.util.List;
 
 
 import com.amazonaws.AmazonClientException;
@@ -8,10 +9,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.Bucket;
-import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.*;
 
 
 public class S3Handler {
@@ -220,6 +218,27 @@ public class S3Handler {
         }
         System.out.println();
     }
+
+    /** List all s3 buckets with their files */
+    public List<Bucket> listBucketsAndObjects() {
+
+        List<Bucket> buckets = s3.listBuckets();
+        System.out.println("S3 buckets are:");
+        for (Bucket bucket : buckets) {
+            System.out.println("* " + bucket.getName());
+            System.out.println("    Objects in this bucket are:");
+
+            ObjectListing objectListing = s3.listObjects(new ListObjectsRequest()
+                    .withBucketName(bucket.getName())
+                    .withPrefix(""));
+            for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
+                System.out.println("    - " + objectSummary.getKey() + "  (size = " + objectSummary.getSize() + ")");
+            }
+        }
+
+        return buckets;
+    }
+
 
 
 }
