@@ -14,8 +14,6 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -57,9 +55,9 @@ public class ManageClientsTest {
     }
 
     /** Before this  test make sure not to run any real instances on amazon (workers!) */
-    private static void testInputeFileMessage() {
-        String jsonPath1 = "/Users/Yuval/Desktop/מבוזרות/test_json1.json";
-        String jsonPath2 = "/Users/Yuval/Desktop/מבוזרות/test_json2.json";
+    private static void testInputFileMessage() {
+        String jsonPath1 = "/Users/Yuval/Desktop/מבוזרות/DistridutedSystem_ass1/Assignment1/json_tests/test_json1.json";
+        String jsonPath2 = "/Users/Yuval/Desktop/מבוזרות/DistridutedSystem_ass1/Assignment1/json_tests/test_json2.json";
 
         // create manager parameters - as the Manager would do
         clientsInfo = new ConcurrentHashMap<>();
@@ -118,7 +116,7 @@ public class ManageClientsTest {
         M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
         M2W_QueueURL = sqs.getURL(Constants.MANAGER_TO_WORKERS_QUEUE);
 
-        testInputeFileMessage();
+        testInputFileMessage();
 
 
 
