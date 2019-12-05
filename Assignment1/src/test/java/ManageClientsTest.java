@@ -14,6 +14,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -54,8 +55,7 @@ public class ManageClientsTest {
         }
     }
 
-    /** Before this  test make sure not to run any real instances on amazon (workers!) */
-    private static void testInputFileMessage() {
+    private static void test() {
         String jsonPath1 = "/Users/Yuval/Desktop/מבוזרות/DistridutedSystem_ass1/Assignment1/json_tests/test_json1.json";
         String jsonPath2 = "/Users/Yuval/Desktop/מבוזרות/DistridutedSystem_ass1/Assignment1/json_tests/test_json2.json";
 
@@ -104,6 +104,62 @@ public class ManageClientsTest {
         }
     }
 
+    private static void testInputFileMessage() throws IOException, ParseException {
+
+        String jsonPath1 = "/Users/Yuval/Desktop/מבוזרות/DistridutedSystem_ass1/Assignment1/json_tests/test_json1.json";
+        String jsonPath2 = "/Users/Yuval/Desktop/מבוזרות/DistridutedSystem_ass1/Assignment1/json_tests/test_json2.json";
+
+        // create manager parameters - as the Manager would do
+        clientsInfo = new ConcurrentHashMap<>();
+        workersCount = new AtomicInteger(5);
+        workersCountLock = new ReentrantLock();
+        String myBucket = null;
+        String keyJson1 = null;
+        String keyJson2 = null;
+
+        try {
+            // create a bucket and 2 input files on s3 - as the client would do
+            UUID appID = UUID.randomUUID();
+            myBucket = s3.createBucket(appID.toString());
+            keyJson1 = s3.uploadFileToS3(myBucket, jsonPath1);
+            keyJson2 = s3.uploadFileToS3(myBucket, jsonPath2);
+
+            // Send 2 messages to the (Clients -> apps.Manager) SQS queue, stating the location of the files on S3
+            Client2Manager messageClientToManager1 = new Client2Manager(myBucket, keyJson1, "none", 1, 2);
+            sqs.sendMessage(C2M_QueueURL, messageClientToManager1.stringifyUsingJSON());
+
+            Client2Manager messageClientToManager2 = new Client2Manager(myBucket, keyJson2, "none", 1, 2);
+            sqs.sendMessage(C2M_QueueURL, messageClientToManager2.stringifyUsingJSON());
+
+            // Create manageClients Runnable
+            ManageClients manageClients = new ManageClients(clientsInfo, workersCount, workersCountLock, ec2, s3, sqs);
+
+            JSONParser jsonParser = new JSONParser();
+            JSONObject msgObj;
+            msgObj = (JSONObject) jsonParser.parse(messageClientToManager1.stringifyUsingJSON());
+            manageClients.inputFileMessage(msgObj);
+
+            msgObj = (JSONObject) jsonParser.parse(messageClientToManager2.stringifyUsingJSON());
+            manageClients.inputFileMessage(msgObj);
+
+            System.out.println("\n\n**** Test results: Clients info ****");
+            for (Map.Entry<String, ClientInfo> entry : clientsInfo.entrySet()) {
+                System.out.println("Client bucket = "+ entry.getKey() + ":\n" + entry.getValue() + "\n");
+            }
+            System.out.println();
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        finally {
+            s3.deleteFile(myBucket, keyJson1);
+            s3.deleteFile(myBucket, keyJson2);
+            s3.deleteBucket(myBucket);
+        }
+
+    }
+
     public static void main(String[] args) throws InterruptedException, IOException, ParseException {
 
         // initial configurations
@@ -111,12 +167,25 @@ public class ManageClientsTest {
         s3 = new S3Handler(ec2);
         sqs = new SQSHandler(ec2.getCredentials());
 
-        // Get the (Clients -> Manager), (Manager -> Clients) SQS queues URLs
-        C2M_QueueURL = sqs.getURL(Constants.CLIENTS_TO_MANAGER_QUEUE);
-        M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
-        M2W_QueueURL = sqs.getURL(Constants.MANAGER_TO_WORKERS_QUEUE);
+        // Start queues
+        sqs.createSQSQueue(Constants.CLIENTS_TO_MANAGER_QUEUE, true);
+        sqs.createSQSQueue(Constants.MANAGER_TO_CLIENTS_QUEUE, true);
+        sqs.createSQSQueue(Constants.MANAGER_TO_WORKERS_QUEUE, true);
 
-        testInputFileMessage();
+        try {
+            // Get the (Clients -> Manager), (Manager -> Clients) SQS queues URLs
+            C2M_QueueURL = sqs.getURL(Constants.CLIENTS_TO_MANAGER_QUEUE);
+            M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
+            M2W_QueueURL = sqs.getURL(Constants.MANAGER_TO_WORKERS_QUEUE);
+
+            testInputFileMessage();
+        }
+        finally {
+            // delete queues
+            sqs.deleteQueue(C2M_QueueURL);
+            sqs.deleteQueue(M2C_QueueURL);
+            sqs.deleteQueue(M2W_QueueURL);
+        }
 
 
 

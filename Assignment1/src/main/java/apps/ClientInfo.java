@@ -21,7 +21,7 @@ public class ClientInfo {
 
     public ClientInfo(int reviewsPerWorker, int numFiles) {
 
-        this.outputFilesCounter.set(numFiles);
+        this.outputFilesCounter = new AtomicInteger(numFiles);
         this.reviewsPerWorker = reviewsPerWorker;
         this.in2outMap = new ConcurrentHashMap<>();
     }
@@ -151,5 +151,28 @@ public class ClientInfo {
         outputDict.put(Constants.COUNTER, counter);
         outputDict.put(Constants.LOCK, new ReentrantLock());
         in2outMap.put(inputKey, outputDict);
+    }
+
+    @Override
+    public String toString() {
+
+        StringBuilder output = new StringBuilder();
+        for (Map.Entry<String, Map <String, Object>> entry : in2outMap.entrySet()) {
+
+            StringBuilder outputIn = new StringBuilder();
+            for (Map.Entry<String, Object> entryIn : entry.getValue().entrySet()) {
+                String pairIn = "         (" + entryIn.getKey() + ", " + entryIn.getValue() + ")\n";
+                outputIn.append(pairIn);
+            }
+
+            String pair = "     * " + entry.getKey() + ":\n" + outputIn + "\n";
+            output.append(pair);
+        }
+
+        return "ClientInfo{" +
+                " \n    in2outMap=\n" + output +
+                "    outputFilesCounter=" + outputFilesCounter +
+                " \n    reviewsPerWorker=" + reviewsPerWorker +
+                "\n}\n";
     }
 }

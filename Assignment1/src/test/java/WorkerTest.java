@@ -42,7 +42,7 @@ public class WorkerTest {
             System.out.println("Created Thread");
 
             M2W_QueueURL = sqs.createSQSQueue(Constants.MANAGER_TO_WORKERS_QUEUE, true);
-            W2M_QueueURL = sqs.createSQSQueue(Constants.WORKERS_TO_MANAGER_QUEUE, true);
+            W2M_QueueURL = sqs.createSQSQueue(Constants.WORKERS_TO_MANAGER_QUEUE, false);
 
             System.out.println("Created Queues");
 

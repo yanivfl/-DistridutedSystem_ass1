@@ -65,6 +65,7 @@ public class SQSHandler {
 
     public void deleteQueue(String myQueueUrl) {
         this.sqs.deleteQueue(new DeleteQueueRequest(myQueueUrl));
+        System.out.println("Deleted queue with the URL: " + myQueueUrl);
     }
 
     public void sendMessage(String myQueueUrl, String messageBody) {
@@ -95,6 +96,7 @@ public class SQSHandler {
     public void deleteMessage(List<Message> messages, String myQueueUrl) {
         String messageRecieptHandle = messages.get(0).getReceiptHandle();
         this.sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageRecieptHandle));
+        System.out.println("Deleted message from queue (URL): " + myQueueUrl);
     }
 
     public List<String> listQueues() {

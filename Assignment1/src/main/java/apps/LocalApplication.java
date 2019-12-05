@@ -43,7 +43,7 @@ public class LocalApplication {
         // start the queues
         sqs.createSQSQueue(Constants.CLIENTS_TO_MANAGER_QUEUE, true);
         sqs.createSQSQueue(Constants.MANAGER_TO_CLIENTS_QUEUE, false);
-        sqs.createSQSQueue(Constants.WORKERS_TO_MANAGER_QUEUE, true);
+        sqs.createSQSQueue(Constants.WORKERS_TO_MANAGER_QUEUE, false);
         sqs.createSQSQueue(Constants.MANAGER_TO_WORKERS_QUEUE, true);
 
     }
