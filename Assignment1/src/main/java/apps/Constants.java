@@ -46,7 +46,7 @@ public class Constants {
 
 
     public enum TAGS {
-        CLIENT_2_MANAGER, CLIENT_2_MANAGER_terminate, CLIENT_2_MANAGER_init, MANAGER_2_CLIENT,
+        CLIENT_2_MANAGER, CLIENT_2_MANAGER_terminate, MANAGER_2_CLIENT,
         MANAGER_2_WORKER, WORKER_2_MANAGER, SUMMERY_LINE
     }
 
@@ -65,22 +65,24 @@ public class Constants {
 
     /**
      * validates Message and returnes Json body
-     * @param msg
-     * @param tag
-     * @return Json body of Message if validation was successful
+     * params: msg, tag
+     * returns: Json body of Message if validation was successful
      */
 
-    public static JSONObject validateMessageAndReturnObj(Message msg , TAGS tag){
+    public static JSONObject validateMessageAndReturnObj(Message msg , TAGS tag, boolean printError){
         JSONParser jsonParser = new JSONParser();
         JSONObject msgObj = null;
         try {
             msgObj = (JSONObject) jsonParser.parse(msg.getBody());
-        } catch (ParseException e) {
+        }
+        catch (ParseException e) {
             System.out.println("Can't parse Message. got exception: "+ e);
             return null;
         }
+
         if (Constants.TAGS.valueOf((String) msgObj.get(Constants.TAG)) != tag) {
-            System.out.println("Got an unexpected message");
+            if (printError)
+                System.out.println("Got an unexpected message");
             return null;
         }
         return msgObj;

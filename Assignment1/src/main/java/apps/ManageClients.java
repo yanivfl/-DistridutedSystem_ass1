@@ -1,5 +1,6 @@
 package apps;
 
+import com.amazonaws.services.sqs.model.Message;
 import handlers.EC2Handler;
 import handlers.S3Handler;
 import handlers.SQSHandler;
@@ -9,10 +10,11 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import sun.plugin2.message.Message;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
@@ -134,6 +136,7 @@ public class ManageClients implements Runnable {
         // For each line of the file, go through the reviews array and for each review create a message to the workers and add it to the queue
         sendMessagesToWorkers(outputReader, M2W_QueueURL, bucket, inKey);
 
+        // Checks the SQS message count and starts Worker processes (nodes) accordingly.
         addWorkersIfNeeded(reviewsPerWorker, reviewsCounter);
     }
 
@@ -148,37 +151,38 @@ public class ManageClients implements Runnable {
         //TODO
     }
 
-    public void messageHandler(String message) throws IOException {
-        try {
-            JSONParser jsonParser = new JSONParser();
-            JSONObject msgObj = (JSONObject) jsonParser.parse(message);
-            if (Constants.TAGS.valueOf((String) msgObj.get(Constants.TAG)).equals(Constants.TAGS.CLIENT_2_MANAGER)) {
-                System.out.println("Got an unexpected message");
-                inputFileMessage(msgObj);
-            }
-            else {
-                if (Constants.TAGS.valueOf((String) msgObj.get(Constants.TAG)).equals(Constants.TAGS.CLIENT_2_MANAGER_terminate)) {
-                    terminateMessage(msgObj);
-                }
-                else {
-                    System.out.println("Got an unexpected message");
-                }
-            }
-        }
-        catch (ParseException e) {
-            System.out.println("Ignored a message");
-        }
-    }
 
     @Override
     public void run() {
 
+        // Get the (Clients -> Manager), (Manager -> Clients) SQS queues URLs
+        String C2M_QueueURL = sqs.getURL(Constants.CLIENTS_TO_MANAGER_QUEUE);
+        String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
 
-//        Client2Manager_init message = new Client2Manager_init("bucket_test", 5);
+        // Go through the (Clients -> Manager) queue and handler each message.
+        // Continue until termination
+        JSONObject jsonObject;
+        while (true) {
+            List<Message> messages = sqs.receiveMessages(C2M_QueueURL, false, false);
+            for (Message message: messages) {
+                jsonObject = Constants.validateMessageAndReturnObj(message, Constants.TAGS.CLIENT_2_MANAGER, false);
 
+                try {
+                    if (jsonObject != null) {
+                        inputFileMessage(jsonObject);
+                    } else {
+                        jsonObject = Constants.validateMessageAndReturnObj(message, Constants.TAGS.CLIENT_2_MANAGER_terminate, true);
+                        terminateMessage(jsonObject);
+                    }
+                } catch (Exception e) {
+                    System.out.println("Got an unexpected message or can't parse message. Got exception: " + e);
+                    System.out.println("Ignored the message");
+                }
 
-        // TODO: change this
-//        messageHandler(message.stringifyUsingJSON());
-
+                //delete received messages (after handling them)
+                if (!messages.isEmpty())
+                    sqs.deleteMessage(messages, C2M_QueueURL);
+            }
+        }
     }
 }

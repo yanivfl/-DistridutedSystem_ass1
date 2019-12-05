@@ -10,7 +10,7 @@ public class MessageTest {
 
         UUID id = UUID.randomUUID();
         Base client2Manager = new Client2Manager("1", "2", "4", 1, 1);
-        Base manager2Client = new Manager2Client(true, id);
+        Base manager2Client = new Manager2Client(true, id.toString());
 
         SummeryLine summeryLine1 = new SummeryLine("review 1", 0, "[ent1;ent2;ent3]", true);
 
@@ -30,16 +30,16 @@ public class MessageTest {
             parsedStr = new Client2Manager(msgStr);
         }
         else {
-            if (msg instanceof Manager2Client) {
-                parsedStr = new Manager2Client(msgStr);
-            }
-            else {
+//            if (msg instanceof Manager2Client) {
+//                parsedStr = new Manager2Client(msgStr);
+//            }
+//            else {
                 if (msg instanceof SummeryLine) {
                     parsedStr = new SummeryLine(msgStr);
                 }
 
             }
-        }
+//        }
 
         System.out.println(parsedStr);
 

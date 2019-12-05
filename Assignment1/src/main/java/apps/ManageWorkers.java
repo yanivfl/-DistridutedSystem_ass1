@@ -44,7 +44,7 @@ public class ManageWorkers implements Runnable {
             List<Message> workerMessages = sqs.receiveMessages(W2M_QueueURL, true, true);
             System.out.println("Manager recieved " + workerMessages.size() + " Messages from W2M Queue");
             for (Message workerMsg : workerMessages) {
-                JSONObject msgObj= Constants.validateMessageAndReturnObj(workerMsg , Constants.TAGS.WORKER_2_MANAGER);
+                JSONObject msgObj= Constants.validateMessageAndReturnObj(workerMsg , Constants.TAGS.WORKER_2_MANAGER, true);
                 if(msgObj==null)
                     continue;
                 String inBucket = (String) msgObj.get(Constants.IN_BUCKET);

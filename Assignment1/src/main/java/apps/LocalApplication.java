@@ -32,10 +32,10 @@ import java.util.UUID;
 public class LocalApplication {
 
     /**
-     * starts the manager instanse and creates the queues
+     * starts the manager instance and creates the queues
      * params: ec2, s3, sqs
      */
-    public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) throws IOException {
+    public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
 
         // start the manager
         ec2.launchEC2Instances(1, Constants.INSTANCE_TAG.TAG_MANAGER);
@@ -157,7 +157,7 @@ public class LocalApplication {
         while (!done) {
             List<Message> doneMessages = sqs.receiveMessages(M2C_QueueURL, false, false);
             for (Message msg: doneMessages) {
-                JSONObject msgObj= Constants.validateMessageAndReturnObj(msg , Constants.TAGS.MANAGER_2_CLIENT);
+                JSONObject msgObj= Constants.validateMessageAndReturnObj(msg , Constants.TAGS.MANAGER_2_CLIENT, true);
                 if (msgObj != null) {
                     boolean isDoneJson = (boolean) msgObj.get(Constants.IS_DONE);
                     String inBucketJson = (String) msgObj.get(Constants.IN_BUCKET);
