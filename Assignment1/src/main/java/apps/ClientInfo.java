@@ -26,8 +26,12 @@ public class ClientInfo {
     }
 
     public String getLocalFileName(String inBucket, String inputKey){
-        String outkey = (String) in2outMap.get(inputKey).get(Constants.OUTPUT_KEY);
+        String outkey = getOutKey(inputKey);
         return inBucket + "_" + outkey;
+    }
+
+    public String getOutKey(String inputKey){
+        return (String) in2outMap.get(inputKey).get(Constants.OUTPUT_KEY);
     }
 
     public boolean deleteLocalFile(String inBucket, String inputKey){
@@ -50,30 +54,41 @@ public class ClientInfo {
         return (ReentrantLock) in2outMap.get(inputKey).get(Constants.LOCK);
     }
 
-    private boolean isNewMessage(String localFileName, String msg) throws IOException {
-        if(! new File(localFileName).isFile()){
+    private boolean isNewMessage(String localFileName, String msg) {
+        System.out.println("in new message");
+        try{
+            if(! new File(localFileName).isFile()){
+                System.out.println("File doesn't exit, return true");
+                return true;
+            }
+
+            BufferedReader outputfileReader = new BufferedReader(new FileReader(localFileName));;
+            while (outputfileReader.ready()) {
+                String line = outputfileReader.readLine();
+                if (line.equals(msg)){
+                    System.out.println("msg already exists in file");
+                    return false;
+                }
+            }
             return true;
+        } catch (IOException e ){
+            System.out.println("exception is: "+ e);
+            return false;
         }
 
-        BufferedReader outputfileReader = new BufferedReader(new FileReader(localFileName));;
-        while (true) {
-            String line = outputfileReader.readLine();
-            if (line.equals(msg)){
-                System.out.println("msg already exists in file");
-                return false;
-            }
-            if (line == null) return true;
-        }
     }
 
     private void appendToLocalFile(String localFileName, String msg){
-        try(FileWriter fw = new FileWriter(localFileName, true);
-            BufferedWriter bw = new BufferedWriter(fw);
-            PrintWriter out = new PrintWriter(bw))
-        {
+        PrintWriter out = null;
+        try {
+            out = new PrintWriter(new BufferedWriter(new FileWriter(localFileName, true)));
             out.println(msg);
         } catch (IOException e) {
-            throw new RuntimeException("couldn't write \n" + msg + "\n to localFileName " + localFileName + "\n with exception" + e);
+            System.err.println(e);
+        } finally {
+            if (out != null) {
+                out.close();
+            }
         }
     }
 
@@ -87,6 +102,7 @@ public class ClientInfo {
         try{
             String localFileName = getLocalFileName(inputBucket,inputKey);
             if (isNewMessage(localFileName, msg)){
+                System.out.println("writing new message");
                 appendToLocalFile(localFileName, msg);
                 isUpdated = true;
             }
@@ -97,22 +113,6 @@ public class ClientInfo {
         }
     }
 
-//    public long incOutputCounter(String inputKey) {
-//        if(getLockForInputKey(inputKey).isHeldByCurrentThread()){
-//            System.out.println("Entering incOutputCounter with lock");
-//            getLockForInputKey(inputKey).unlock();
-//        }
-//        long newCounter = -1; //default non zero value
-//        getLockForInputKey(inputKey).lock();
-//        try {
-//            newCounter = (Long) in2outMap.get(inputKey).get(Constants.COUNTER) +1;
-//            in2outMap.get(inputKey).put(Constants.COUNTER, newCounter);
-//        } finally {
-//            getLockForInputKey(inputKey).unlock();
-//            return newCounter ;
-//        }
-//
-//    }
 
     public long decOutputCounter(String inputKey) {
         if(getLockForInputKey(inputKey).isHeldByCurrentThread()){
@@ -132,9 +132,6 @@ public class ClientInfo {
         }
     }
 
-//    public int incOutputFiles() {
-//        return outputFilesCounter.incrementAndGet();
-//    }
 
     public int decOutputFiles() {
         return outputFilesCounter.decrementAndGet();

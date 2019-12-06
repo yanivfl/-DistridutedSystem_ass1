@@ -78,7 +78,8 @@ public class ManageWorkers implements Runnable {
                     // check if there are more reviews for this file
                    long reviewsLeft = clientInfo.decOutputCounter(inKey);
                    if (reviewsLeft == 0){
-                       s3.uploadFileToS3(inBucket, clientInfo.getLocalFileName(inBucket,inKey));
+                       String outKey = clientInfo.getOutKey(inKey);
+                       s3.uploadLocalToS3(inBucket, clientInfo.getLocalFileName(inBucket,inKey), outKey);
                       clientInfo.deleteLocalFile(inBucket, inKey);
 
                       // check if there are no more files for this client

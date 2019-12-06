@@ -37,7 +37,7 @@ public class AWSResourceTest {
                 ec2.terminateEC2Instance(instance.getInstanceId());
             }
         }
-        if (instancesList.isEmpty()) {
+        if (ec2.listInstances().isEmpty()) {
             System.out.println("No instances");
         }
 
@@ -48,18 +48,18 @@ public class AWSResourceTest {
                 s3.deleteBucket(bucket.getName());
             }
         }
-        if (buckets.isEmpty()) {
+        if (s3.listBucketsAndObjects().isEmpty()) {
             System.out.println("No buckets");
         }
 
         System.out.println("\nList all SQS queues (URL)");
         List<String> urls = sqs.listQueues();
-        if (delete_sqs){
+//        if (delete_sqs){
             for ( String url: urls) {
                sqs.deleteQueue(url);
             }
-        }
-        if (urls.isEmpty()) {
+//        }
+        if (sqs.listQueues().isEmpty()) {
             System.out.println("No queues");
         }
     }
