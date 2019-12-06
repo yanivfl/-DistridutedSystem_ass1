@@ -15,6 +15,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -86,7 +87,7 @@ public class ManageClientsTest {
             sqs.sendMessage(C2M_QueueURL, messageClientToManager.stringifyUsingJSON());
 
             // Create manageClients Runnable
-            Runnable manageClients = new ManageClients(clientsInfo, workersCount, workersCountLock, terminate, ec2, s3, sqs);
+            Runnable manageClients = new ManageClients(clientsInfo, new AtomicInteger(0), workersCount, new AtomicInteger(0), new PriorityQueue<Integer>(), terminate, null, ec2, s3, sqs); //TODO: this is wrong
             Thread t1 = new Thread(manageClients);
             t1.start();
             t1.join();
@@ -136,7 +137,7 @@ public class ManageClientsTest {
             sqs.sendMessage(C2M_QueueURL, messageClientToManager2.stringifyUsingJSON());
 
             // Create manageClients Runnable
-            ManageClients manageClients = new ManageClients(clientsInfo, workersCount, workersCountLock, terminate, ec2, s3, sqs);
+            ManageClients manageClients = new ManageClients(clientsInfo, new AtomicInteger(0), workersCount, new AtomicInteger(0), new PriorityQueue<Integer>(), terminate, null, ec2, s3, sqs);    // TODO: this is wrong
 
             JSONParser jsonParser = new JSONParser();
             JSONObject msgObj;

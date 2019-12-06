@@ -15,6 +15,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,19 +30,29 @@ import java.util.stream.Collectors;
 public class ManageClients implements Runnable {
 
     private ConcurrentMap<String, ClientInfo> clientsInfo;
+    private AtomicInteger clientsCount;
     private AtomicInteger workersCount;
-    private ReentrantLock workersCountLock;
+    private AtomicInteger extraWorkersCount;
+    private Object waitingObject;
+    private PriorityQueue<Integer> maxWorkersPerClient;
     private AtomicBoolean terminate;
+
+    private static final int ADD_EXTRA_WORKER = 3;
+
     private EC2Handler ec2;
     private S3Handler s3;
     private SQSHandler sqs;
 
-    public ManageClients(ConcurrentMap<String, ClientInfo> clientInfo, AtomicInteger workersCount,
-                         ReentrantLock workersCountLock, AtomicBoolean terminate,
+    public ManageClients(ConcurrentMap<String, ClientInfo> clientInfo, AtomicInteger clientsCount,
+                         AtomicInteger workersCount, AtomicInteger extraWorkersCount, PriorityQueue<Integer> maxWorkersPerClient,
+                         AtomicBoolean terminate, Object waitingObject,
                          EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
         this.clientsInfo = clientInfo;
+        this.clientsCount = clientsCount;
         this.workersCount = workersCount;
-        this.workersCountLock = workersCountLock;
+        this.extraWorkersCount = extraWorkersCount;
+        this.waitingObject = waitingObject;
+        this.maxWorkersPerClient = maxWorkersPerClient;
         this.terminate = terminate;
         this.ec2 = ec2;
         this.s3 = s3;
@@ -89,15 +100,35 @@ public class ManageClients implements Runnable {
      * (If there are k active workers, and the new job requires m workers, then the manager should create m-k new workers, if possible).
      * params: currAppReviewsPerWorker - the current local app's reviewsPerWorker parameter (taken from it's client info)
      */
-    private void addWorkersIfNeeded(long currAppReviewsPerWorker, long numReviews) {
-        workersCountLock.lock();
-        int diff = workersCount.get() - (int)numReviews/(int)currAppReviewsPerWorker;
+    private void addWorkersIfNeeded(long currAppReviewsPerWorker, long currAppNumReviews) {
+        synchronized (waitingObject) {
+            int workersNeeded = (int) currAppNumReviews / (int) currAppReviewsPerWorker;
+            maxWorkersPerClient.add(workersNeeded);
 
-        // should start more [diff] workers
-        if (diff < 0) {
-            ec2.launchEC2Instances(diff, Constants.INSTANCE_TAG.TAG_WORKER);
+            int numWorkersToLaunch = workersNeeded - workersCount.get();
+
+            // add scalability
+            boolean launchExtra = (clientsCount.get() % ADD_EXTRA_WORKER == 0);
+            extraWorkersCount.incrementAndGet();
+
+            if (launchExtra) {
+                if (numWorkersToLaunch <= 0)
+                    numWorkersToLaunch = 1;
+                else
+                    numWorkersToLaunch ++;
+            }
+
+            // should start more workers
+            if (numWorkersToLaunch > 0) {
+                ec2.launchEC2Instances(numWorkersToLaunch, Constants.INSTANCE_TAG.TAG_WORKER);
+
+                if (launchExtra)
+                    numWorkersToLaunch--;
+
+                workersCount.set(workersCount.get() + numWorkersToLaunch);
+                waitingObject.notifyAll();
+            }
         }
-        workersCountLock.unlock();
     }
 
     /**
@@ -115,14 +146,21 @@ public class ManageClients implements Runnable {
         int numFiles = ((Long) msgObj.get(Constants.NUM_FILES)).intValue();
 
         // If in termination mode and this is a new client, do not accept it's messages (ignore)
-        if (!clientsInfo.containsKey(bucket))
+        if (terminate.get() && !clientsInfo.containsKey(bucket))
             return;
 
         // Initialize this local app client in the clients info map if it wasn't initialized yet.
         // (first message initialize the ClientInfo)
         ClientInfo localApp = new ClientInfo((int)reviewsPerWorker, numFiles);
         ClientInfo tmp = clientsInfo.putIfAbsent(bucket, localApp);
-        if (tmp != null) {
+
+        if (tmp == null) {
+            synchronized (waitingObject) {
+                clientsCount.incrementAndGet();
+                waitingObject.notifyAll();
+            }
+        }
+        else {
             localApp = tmp;
         }
 
@@ -151,7 +189,6 @@ public class ManageClients implements Runnable {
     /**
      * Starts the termination process.
      */
-
     public void terminateMessage(JSONObject msgObj) {
         terminate.set(true);
     }
@@ -159,9 +196,8 @@ public class ManageClients implements Runnable {
     @Override
     public void run() {
 
-        // Get the (Clients -> Manager), (Manager -> Clients) SQS queues URLs
+        // Get the (Clients -> Manager) SQS queues URLs
         String C2M_QueueURL = sqs.getURL(Constants.CLIENTS_TO_MANAGER_QUEUE);
-        String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
 
         // Go through the (Clients -> Manager) queue and handler each message.
         // Continue until termination
@@ -185,7 +221,7 @@ public class ManageClients implements Runnable {
                     System.out.println("Ignored the message");
                 }
 
-                //delete received messages (after handling them)
+                // delete received messages (after handling them)
                 if (!messages.isEmpty())
                     sqs.deleteMessage(messages, C2M_QueueURL);
             }
@@ -194,12 +230,6 @@ public class ManageClients implements Runnable {
             // then this thread has finish
             if (clientsInfo.isEmpty() && terminate.get()) {
                 running = false;
-
-                // TODO
-//                synchronized (waitingObject) {
-//                    waitingObject.notifyAll();
-//                }
-
             }
         }
     }

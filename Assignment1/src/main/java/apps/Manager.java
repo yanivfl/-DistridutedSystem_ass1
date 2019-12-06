@@ -5,16 +5,14 @@ import com.amazonaws.services.ec2.model.Tag;
 import handlers.EC2Handler;
 import handlers.S3Handler;
 import handlers.SQSHandler;
-import org.omg.PortableServer.THREAD_POLICY_ID;
 
-import java.lang.reflect.Array;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class Manager {
 
@@ -27,8 +25,9 @@ public class Manager {
     private static ConcurrentMap<String, ClientInfo> clientsInfo;
     private static AtomicInteger clientsCount;
     private static AtomicInteger workersCount;
-    private static ReentrantLock workersCountLock;
     private static AtomicBoolean terminate;
+    private static AtomicInteger extraWorkersCount;
+    private static PriorityQueue<Integer> maxWorkersPerClient;
 
     private static LinkedList<Thread> clientsThreads;
     private static LinkedList<Thread> workersThreads;
@@ -47,14 +46,14 @@ public class Manager {
 
         clientsCount = new AtomicInteger(0);
         workersCount = new AtomicInteger(0);
-        workersCountLock = new ReentrantLock();
         terminate = new AtomicBoolean(false);
+        extraWorkersCount = new AtomicInteger(0);
+        maxWorkersPerClient = new PriorityQueue<>(Collections.reverseOrder());
 
         clientsThreads = new LinkedList<>();
         workersThreads = new LinkedList<>();
         clientsThreadCount = 0;
         workersThreadCount = 0;
-
     }
 
     public static void main(String[] args) throws InterruptedException {
@@ -62,8 +61,8 @@ public class Manager {
         initialConfigurations();
 
         // start the first threads (1 for workers and 1 for clients)
-        Thread workersThread = new Thread(new ManageWorkers(clientsInfo, ec2, s3, sqs));
-        Thread clientsThread = new Thread(new ManageClients(clientsInfo, workersCount, workersCountLock, terminate, ec2, s3, sqs));
+        Thread workersThread = new Thread(new ManageWorkers(clientsInfo, clientsCount, workersCount, extraWorkersCount, maxWorkersPerClient, waitingObject, ec2, s3, sqs));
+        Thread clientsThread = new Thread(new ManageClients(clientsInfo, clientsCount, workersCount, extraWorkersCount, maxWorkersPerClient, terminate, waitingObject, ec2, s3, sqs));
 
         workersThreads.add(workersThread);
         clientsThreads.add(clientsThread);
@@ -74,24 +73,20 @@ public class Manager {
         workersThread.start();
         clientsThread.start();
 
-        // wait for some thread to add workers or add clients
-
-
         while (!terminate.get()) {
 
             synchronized (waitingObject) {
 
-                // TODO:
                 // wakes up when:
-                // 1. new worker
-                // 2. new client
-                // 3. client is done
+                // 1. new worker - in ManageClients
+                // 2. new client - in ManageClients
+                // 3. client is done - in ManageWorkers
                 // 4. worker is done    // TODO
                 waitingObject.wait();
 
                 // clientsCount can increase only on waitingObject synchronization
                 if (clientsThreadCount < clientsCount.get() && clientsThreadCount < MAX_THREADS_PER_GROUP) {
-                    clientsThread = new Thread(new ManageClients(clientsInfo, workersCount, workersCountLock, terminate, ec2, s3, sqs));
+                    clientsThread = new Thread(new ManageClients(clientsInfo, clientsCount, workersCount, extraWorkersCount, maxWorkersPerClient, terminate, waitingObject, ec2, s3, sqs));
                     clientsThreads.add(clientsThread);
                     clientsThreadCount++;
                     clientsThread.start();
@@ -99,7 +94,7 @@ public class Manager {
 
                 // workersCount can increase only on waitingObject synchronization
                 if (workersThreadCount < workersCount.get() && workersThreadCount < MAX_THREADS_PER_GROUP) {
-                    workersThread = new Thread(new ManageWorkers(clientsInfo, ec2, s3, sqs));
+                    workersThread = new Thread(new ManageWorkers(clientsInfo, clientsCount, workersCount, extraWorkersCount, maxWorkersPerClient, waitingObject, ec2, s3, sqs));
                     workersThreads.add(workersThread);
                     workersThreadCount++;
                     workersThread.start();

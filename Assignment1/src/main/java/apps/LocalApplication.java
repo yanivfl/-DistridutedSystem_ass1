@@ -64,8 +64,6 @@ public class LocalApplication {
         while(reader.ready()) {
             String line = reader.readLine();
 
-
-
             // parse line using JSON
             JSONParser parser = new JSONParser();
             JSONObject obj = (JSONObject) parser.parse(line);

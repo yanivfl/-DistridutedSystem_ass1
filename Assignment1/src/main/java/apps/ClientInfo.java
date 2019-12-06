@@ -1,9 +1,6 @@
 package apps;
 
 
-import edu.stanford.nlp.util.Pair;
-import handlers.S3Handler;
-
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,12 +15,14 @@ public class ClientInfo {
     private ConcurrentMap<String, Map <String, Object>>  in2outMap;
     private AtomicInteger outputFilesCounter;
     private int reviewsPerWorker;
+    private long totalReviews;
 
     public ClientInfo(int reviewsPerWorker, int numFiles) {
 
         this.outputFilesCounter = new AtomicInteger(numFiles);
         this.reviewsPerWorker = reviewsPerWorker;
         this.in2outMap = new ConcurrentHashMap<>();
+        this.totalReviews = 0;
     }
 
     public String getLocalFileName(String inBucket, String inputKey){
@@ -151,6 +150,16 @@ public class ClientInfo {
         outputDict.put(Constants.COUNTER, counter);
         outputDict.put(Constants.LOCK, new ReentrantLock());
         in2outMap.put(inputKey, outputDict);
+
+        addToReviewsCounter(counter);
+    }
+
+    public void addToReviewsCounter(long toAdd) {
+        totalReviews += toAdd;
+    }
+
+    public long getTotalReviews() {
+        return totalReviews;
     }
 
     @Override
@@ -171,8 +180,8 @@ public class ClientInfo {
 
         return "ClientInfo{" +
                 " \n    in2outMap=\n" + output +
-                "    outputFilesCounter=" + outputFilesCounter +
-                " \n    reviewsPerWorker=" + reviewsPerWorker +
-                "\n}\n";
+                " \n    outputFilesCounter=" + outputFilesCounter +
+                ",\n    reviewsPerWorker=" + reviewsPerWorker +
+                "}\n";
     }
 }
