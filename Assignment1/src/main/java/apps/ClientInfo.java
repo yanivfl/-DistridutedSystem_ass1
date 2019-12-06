@@ -13,13 +13,16 @@ public class ClientInfo {
 
     // the map is build from: <input key, <output key, count done reviews in this file>>
     private ConcurrentMap<String, Map <String, Object>>  in2outMap;
-    private AtomicInteger outputFilesCounter;
+    private AtomicInteger outputFilesLeft;
+    private AtomicInteger inputFilesRecieved;
     private int reviewsPerWorker;
     private long totalReviews;
 
+
     public ClientInfo(int reviewsPerWorker, int numFiles) {
 
-        this.outputFilesCounter = new AtomicInteger(numFiles);
+        this.outputFilesLeft = new AtomicInteger(numFiles);
+        this.inputFilesRecieved = new AtomicInteger(0);
         this.reviewsPerWorker = reviewsPerWorker;
         this.in2outMap = new ConcurrentHashMap<>();
         this.totalReviews = 0;
@@ -133,8 +136,12 @@ public class ClientInfo {
     }
 
 
-    public int decOutputFiles() {
-        return outputFilesCounter.decrementAndGet();
+    public int decOutputFilesLeft() {
+        return outputFilesLeft.decrementAndGet();
+    }
+
+    public int incInputFilesRecieved() {
+        return inputFilesRecieved.incrementAndGet();
     }
 
     public int getReviewsPerWorker() {
@@ -177,7 +184,7 @@ public class ClientInfo {
 
         return "ClientInfo{" +
                 " \n    in2outMap=\n" + output +
-                " \n    outputFilesCounter=" + outputFilesCounter +
+                " \n    outputFilesCounter=" + outputFilesLeft +
                 ",\n    reviewsPerWorker=" + reviewsPerWorker +
                 "}\n";
     }

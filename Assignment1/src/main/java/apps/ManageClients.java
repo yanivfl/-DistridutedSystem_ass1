@@ -4,7 +4,6 @@ import com.amazonaws.services.sqs.model.Message;
 import handlers.EC2Handler;
 import handlers.S3Handler;
 import handlers.SQSHandler;
-import messages.Manager2Client;
 import messages.Manager2Worker;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -13,14 +12,11 @@ import org.json.simple.parser.ParseException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 
 /**
  * Manage the different messages that comes from clients
@@ -31,13 +27,11 @@ public class ManageClients implements Runnable {
 
     private ConcurrentMap<String, ClientInfo> clientsInfo;
     private AtomicInteger clientsCount;
-    private AtomicInteger workersCount;
+    private AtomicInteger regulerWorkersCount;
     private AtomicInteger extraWorkersCount;
     private Object waitingObject;
     private PriorityQueue<Integer> maxWorkersPerClient;
     private AtomicBoolean terminate;
-
-    private static final int ADD_EXTRA_WORKER = 3;
 
     private EC2Handler ec2;
     private S3Handler s3;
@@ -49,7 +43,7 @@ public class ManageClients implements Runnable {
                          EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
         this.clientsInfo = clientInfo;
         this.clientsCount = clientsCount;
-        this.workersCount = workersCount;
+        this.regulerWorkersCount = workersCount;
         this.extraWorkersCount = extraWorkersCount;
         this.waitingObject = waitingObject;
         this.maxWorkersPerClient = maxWorkersPerClient;
@@ -104,30 +98,26 @@ public class ManageClients implements Runnable {
         synchronized (waitingObject) {
             int workersNeeded = (int) currAppNumReviews / (int) currAppReviewsPerWorker;
             maxWorkersPerClient.add(workersNeeded);
-
-            int numWorkersToLaunch = workersNeeded - workersCount.get();
-
+            
+            int extraWorkersToLaunch = 0;
             // add scalability
-            boolean launchExtra = (clientsCount.get() % ADD_EXTRA_WORKER == 0);
-            extraWorkersCount.incrementAndGet();
-
-            if (launchExtra) {
-                if (numWorkersToLaunch <= 0)
-                    numWorkersToLaunch = 1;
-                else
-                    numWorkersToLaunch ++;
+            int totalExtraWorkers = clientsCount.get() / Constants.ADD_EXTRA_WORKER; //extra worker for every 3 clients
+            while(extraWorkersCount.get() < totalExtraWorkers ){
+                extraWorkersCount.incrementAndGet();
+                extraWorkersToLaunch++;
             }
 
+
+            int addRegulerWorkers = Math.max(workersNeeded - regulerWorkersCount.get(), 0);
+            int numWorkersToLaunch = addRegulerWorkers + extraWorkersToLaunch;
+
+            
             // should start more workers
             if (numWorkersToLaunch > 0) {
                 ec2.launchEC2Instances(numWorkersToLaunch, Constants.INSTANCE_TAG.TAG_WORKER);
-
-                if (launchExtra)
-                    numWorkersToLaunch--;
-
-                workersCount.set(workersCount.get() + numWorkersToLaunch);
-                waitingObject.notifyAll();
-            }
+              }
+            regulerWorkersCount.set(regulerWorkersCount.get() + addRegulerWorkers);
+            waitingObject.notifyAll();
         }
     }
 
@@ -151,8 +141,8 @@ public class ManageClients implements Runnable {
 
         // Initialize this local app client in the clients info map if it wasn't initialized yet.
         // (first message initialize the ClientInfo)
-        ClientInfo localApp = new ClientInfo((int)reviewsPerWorker, numFiles);
-        ClientInfo tmp = clientsInfo.putIfAbsent(bucket, localApp);
+        ClientInfo clientInfo = new ClientInfo((int)reviewsPerWorker, numFiles);
+        ClientInfo tmp = clientsInfo.putIfAbsent(bucket, clientInfo);
 
         if (tmp == null) {
             synchronized (waitingObject) {
@@ -161,7 +151,7 @@ public class ManageClients implements Runnable {
             }
         }
         else {
-            localApp = tmp;
+            clientInfo = tmp;
         }
 
         // Downloads the input file from S3.
@@ -171,7 +161,7 @@ public class ManageClients implements Runnable {
         long reviewsCounter = countReviewsPerFile(outputReader);
 
         // update client info
-        localApp.putOutputKey(inKey, outKey, reviewsCounter);
+        clientInfo.putOutputKey(inKey, outKey, reviewsCounter);
 
         // Downloads the input file (again) from S3.
         outputReader = s3.downloadFile(bucket, inKey);
@@ -183,7 +173,11 @@ public class ManageClients implements Runnable {
         sendMessagesToWorkers(outputReader, M2W_QueueURL, bucket, inKey);
 
         // Checks the SQS message count and starts Worker processes (nodes) accordingly.
-        addWorkersIfNeeded(reviewsPerWorker, reviewsCounter);
+        clientInfo.addToReviewsCounter(reviewsCounter);
+        if(clientInfo.incInputFilesRecieved()==numFiles){
+            addWorkersIfNeeded(reviewsPerWorker, clientInfo.getTotalReviews());
+        }
+
     }
 
     /**
@@ -205,7 +199,7 @@ public class ManageClients implements Runnable {
         boolean running = true;
         while (running) {
             System.out.println("Checking queue for messages from clients");
-            List<Message> messages = sqs.receiveMessages(C2M_QueueURL, false, false);
+            List<Message> messages = sqs.receiveMessages(C2M_QueueURL, false, false); //TODO why false?
             for (Message message: messages) {
                 jsonObject = Constants.validateMessageAndReturnObj(message, Constants.TAGS.CLIENT_2_MANAGER, false);
 

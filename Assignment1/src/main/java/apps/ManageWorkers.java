@@ -9,8 +9,6 @@ import messages.Manager2Client;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -26,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ManageWorkers implements Runnable {
     private ConcurrentMap<String, ClientInfo> clientsInfo;
     private AtomicInteger clientsCount;
-    private AtomicInteger workersCount;
+    private AtomicInteger regulerWorkersCount;
     private AtomicInteger extraWorkersCount;
     private PriorityQueue<Integer> maxWorkersPerClient;
     private Object waitingObject;
@@ -34,11 +32,11 @@ public class ManageWorkers implements Runnable {
     private S3Handler s3;
     private SQSHandler sqs;
 
-    public ManageWorkers(ConcurrentMap<String, ClientInfo> clientsInfo, AtomicInteger clientsCount, AtomicInteger workersCount, AtomicInteger extraWorkersCount, PriorityQueue<Integer> maxWorkersPerClient, Object waitingObject,
+    public ManageWorkers(ConcurrentMap<String, ClientInfo> clientsInfo, AtomicInteger clientsCount, AtomicInteger regulerWorkersCount, AtomicInteger extraWorkersCount, PriorityQueue<Integer> maxWorkersPerClient, Object waitingObject,
                          EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
         this.clientsInfo = clientsInfo;
         this.clientsCount = clientsCount;
-        this.workersCount = workersCount;
+        this.regulerWorkersCount = regulerWorkersCount;
         this.extraWorkersCount = extraWorkersCount;
         this.maxWorkersPerClient = maxWorkersPerClient;
         this.waitingObject = waitingObject;
@@ -74,7 +72,7 @@ public class ManageWorkers implements Runnable {
 
                 boolean isUpdated = clientInfo.updateLocalOutputFile(inBucket,inKey, msgObj.toJSONString());
                 if (isUpdated) {
-
+                    System.out.println("clientInfo: "+ clientInfo.toString());
                     // check if there are more reviews for this file
                    long reviewsLeft = clientInfo.decOutputCounter(inKey);
                    if (reviewsLeft == 0){
@@ -83,8 +81,9 @@ public class ManageWorkers implements Runnable {
                       clientInfo.deleteLocalFile(inBucket, inKey);
 
                       // check if there are no more files for this client
-                      int outputFilesLeft = clientInfo.decOutputFiles();
+                      int outputFilesLeft = clientInfo.decOutputFilesLeft();
                       if (outputFilesLeft == 0){
+                          System.out.println("sending done mail to client");
                           sqs.sendMessage(M2C_QueueURL,
                                   new Manager2Client(true, inBucket )
                                           .stringifyUsingJSON());
@@ -107,15 +106,14 @@ public class ManageWorkers implements Runnable {
         // tell the manager there is one less client to serve
         synchronized (waitingObject) {
 
-            int numWorkerToRemove = 0;
-            boolean removeExtra = false;
-            if(clientsCount.get() % 3 == 0){
-              extraWorkersCount.decrementAndGet();
-              removeExtra = true;
-              numWorkerToRemove = 1;
+            clientsCount.decrementAndGet(); //feels right to decrease clients and then do the rest...
+            int extraWorkersToTerminate= 0;
+            // add scalability
+            int totalExtraWorkers = clientsCount.get() / Constants.ADD_EXTRA_WORKER; //extra worker for every 3 clients
+            while(extraWorkersCount.get() > totalExtraWorkers ){
+                extraWorkersCount.decrementAndGet();
+                extraWorkersToTerminate++;
             }
-
-            clientsCount.decrementAndGet();
 
             // terminate unneeded workers
             long workersPerClient = clientInfo.getTotalReviews() / clientInfo.getReviewsPerWorker();
@@ -126,25 +124,26 @@ public class ManageWorkers implements Runnable {
                 return;
             }
 
-            numWorkerToRemove += workersCount.get() - currMax;
-            if (numWorkerToRemove <= 0 && removeExtra){
-                numWorkerToRemove = 1;
-            }
+            int regulerWorkersToTerminate = Math.max(regulerWorkersCount.get() - currMax,0);
+            int numberOfWorkersToTerminate = regulerWorkersToTerminate + extraWorkersToTerminate;
 
-            if (numWorkerToRemove > 0) {
+            if (numberOfWorkersToTerminate > 0) {
                 List<Instance> instances = ec2.listInstances(false);
                 for (Instance instance: instances) {
                     for (Tag tag: instance.getTags()) {
                         if (tag.getValue().equals(Constants.INSTANCE_TAG.TAG_WORKER.toString())
                                 && instance.getState().getName().equals("running")) {
                             ec2.terminateEC2Instance(instance.getInstanceId());
-                            numWorkerToRemove --;
+                            numberOfWorkersToTerminate --;
+                            //break;
                         }
                     }
-                    if (numWorkerToRemove == 0)
+                    if (numberOfWorkersToTerminate == 0){
                         break;
+                    }
                 }
             }
+            regulerWorkersCount.set(regulerWorkersCount.get() - regulerWorkersToTerminate);
             waitingObject.notifyAll();
         }
     }

@@ -12,6 +12,7 @@ import java.io.InputStream;
 
 public class Constants {
 
+    public static final int ADD_EXTRA_WORKER = 3;
     public static final String AMI = "ami-b66ed3de";
     public static final String TAG = "tag";
     public static final String SENDER_BUCKET = "senderBucket";

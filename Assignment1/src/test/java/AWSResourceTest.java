@@ -37,7 +37,7 @@ public class AWSResourceTest {
                 ec2.terminateEC2Instance(instance.getInstanceId());
             }
         }
-        if (ec2.listInstances().isEmpty()) {
+        if (ec2.listInstances(false).isEmpty()) {
             System.out.println("No instances");
         }
 
