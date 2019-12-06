@@ -25,7 +25,6 @@ public class WorkerTest {
             System.out.println("for example: /home/yaniv/workSpace/dsps/reviews/single_json");
             return;
         }
-        Object waitOnMe = new Object();
         String fileName = args[0];
         EC2Handler ec2 = new EC2Handler();
         System.out.println("connected to EC2");
@@ -46,7 +45,7 @@ public class WorkerTest {
 
             System.out.println("Created Queues");
 
-//            thread.start();
+            thread.start();
 
 
             //test

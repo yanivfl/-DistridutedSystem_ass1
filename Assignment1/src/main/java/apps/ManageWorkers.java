@@ -55,9 +55,11 @@ public class ManageWorkers implements Runnable {
                     continue;
                 boolean isUpdated = clientInfo.updateLocalOutputFile(inBucket,inKey, msgObj.toJSONString());
                 if(isUpdated){
+                    System.out.println("clientInfo: " + clientInfo.toString());
                    long reviewsLeft = clientInfo.decOutputCounter(inKey);
                    if (reviewsLeft == 0){
-                       s3.uploadFileToS3(inBucket, clientInfo.getLocalFileName(inBucket,inKey));
+                       String outKey = clientInfo.getOutKey(inKey);
+                       s3.uploadLocalToS3(inBucket, clientInfo.getLocalFileName(inBucket,inKey), outKey);
                       clientInfo.deleteLocalFile(inBucket, inKey);
                       int outputFilesLeft = clientInfo.decOutputFiles();
                       if (outputFilesLeft == 0){
@@ -76,8 +78,5 @@ public class ManageWorkers implements Runnable {
         }
 
     }
-
-
-
 
 }

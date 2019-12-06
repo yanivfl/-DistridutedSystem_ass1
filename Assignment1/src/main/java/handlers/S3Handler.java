@@ -76,6 +76,18 @@ public class S3Handler {
         return keyName;
     }
 
+    /**
+     * Create a key name by keyName and uploads the fileName to S3.
+     * params: ec2, s3, bucketName, filePath
+     * returns: the key name of the file
+     */
+    public String uploadLocalToS3(String bucketName, String fileName, String keyName) {
+        File file = new File(fileName);
+        PutObjectRequest request = new PutObjectRequest(bucketName, keyName, file);
+        this.s3.putObject(request);
+        return keyName;
+    }
+
     public void uploadJarDirectory(String directoryName) throws IOException {
         String bucketName = getAwsBucketName(directoryName);
         String key = null;
