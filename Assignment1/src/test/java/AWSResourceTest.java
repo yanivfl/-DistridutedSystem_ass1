@@ -31,7 +31,7 @@ public class AWSResourceTest {
         SQSHandler sqs = new SQSHandler(ec2.getCredentials());
 
         System.out.println("\nList all instances");
-        List<Instance> instancesList = ec2.listInstances();
+        List<Instance> instancesList = ec2.listInstances(true);
         if (delete_instances){
             for ( Instance instance: instancesList) {
                 ec2.terminateEC2Instance(instance.getInstanceId());
