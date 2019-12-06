@@ -30,16 +30,18 @@ public class Constants {
     public static final String REVIEWS_PER_WORKER= "reviewsPerWorker";
     public static final String NUM_FILES= "numFiles";
     public static final String IS_DONE = "isDone";
-
     public static final String OUTPUT_KEY = "outputKey";
     public static final String COUNTER = "counter";
     public static final String LOCK = "lock";
-
 
     public static final String CLIENTS_TO_MANAGER_QUEUE= "Clients2ManagerQueue";
     public static final String MANAGER_TO_CLIENTS_QUEUE= "Manager2ClientsQueue";
     public static final String WORKERS_TO_MANAGER_QUEUE = "Workers2ManagerQueue";
     public static final String MANAGER_TO_WORKERS_QUEUE = "Manager2WorkersQueue";
+
+    public static final String SQSpolicyPath = "RolePolicies/SQSpolicy.json";
+    public static final String EC2policyPath = "RolePolicies/EC2policy.json";
+    public static final String S3policyPath = "RolePolicies/S3policy.json";
 
     public enum INSTANCE_TAG {
         TAG_MANAGER, TAG_WORKER

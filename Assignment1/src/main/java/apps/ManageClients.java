@@ -194,6 +194,12 @@ public class ManageClients implements Runnable {
             // then this thread has finish
             if (clientsInfo.isEmpty() && terminate.get()) {
                 running = false;
+
+                // TODO
+//                synchronized (waitingObject) {
+//                    waitingObject.notifyAll();
+//                }
+
             }
         }
     }

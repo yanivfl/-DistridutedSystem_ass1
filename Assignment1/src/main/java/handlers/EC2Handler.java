@@ -8,6 +8,7 @@ import java.util.List;
 
 import apps.Constants;
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
@@ -19,7 +20,10 @@ import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.ec2.model.Tag;
-
+import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
+import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
+import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
 
 
 public class EC2Handler {
@@ -39,6 +43,26 @@ public class EC2Handler {
                 .build();
     }
 
+    /**
+     * This is for local app usage only
+     */
+    //TODO
+//    public AWSCredentials getStaticSecureCredentials(String roleArn, String roleSessionName) {
+//        AWSSecurityTokenService client = AWSSecurityTokenServiceClientBuilder.standard().build();
+//
+//        AssumeRoleRequest request = new AssumeRoleRequest()
+//                .withRoleArn(roleArn)
+//                .withRoleSessionName(roleSessionName)
+//                .withPolicy(Constants.EC2policyPath)
+//                .withPolicy(Constants.S3policyPath)
+//                .withPolicy(Constants.SQSpolicyPath)
+//                .withDurationSeconds(3600).withExternalId("123ABC");
+//
+//        AssumeRoleResult response = client.assumeRole(request);
+//
+//        return response.getCredentials();
+//    }
+
     public AWSCredentialsProvider getCredentials() {
         return credentials;
     }
@@ -56,9 +80,11 @@ public class EC2Handler {
     public List<Instance> launchEC2Instances(int machineCount, Constants.INSTANCE_TAG tagName) {
         try {
             // launch instances
-            RunInstancesRequest runInstrequest = new RunInstancesRequest(Constants.AMI, machineCount, machineCount);
-            runInstrequest.setInstanceType(InstanceType.T2Micro.toString());
-            List<Instance> instances = this.ec2.runInstances(runInstrequest).getReservation().getInstances();
+            RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, machineCount, machineCount)
+//                    .withIamInstanceProfile()     // TODO
+//                    .withUserData()   // TODO
+                    .withInstanceType(InstanceType.T2Micro.toString());
+            List<Instance> instances = this.ec2.runInstances(runInstanceRequest).getReservation().getInstances();
 
             // tag instances with the given tag
             for (Instance inst: instances) {
@@ -79,8 +105,6 @@ public class EC2Handler {
         }
     }
 
-
-
     /**
      * terminate requested machine instance
      * @param instanecID
@@ -90,7 +114,7 @@ public class EC2Handler {
         try {
             TerminateInstancesRequest terminateInstancesRequest = new TerminateInstancesRequest()
                     .withInstanceIds(instanecID);
-            this.ec2.terminateInstances(terminateInstancesRequest)
+                        this.ec2.terminateInstances(terminateInstancesRequest)
                     .getTerminatingInstances()
                     .get(0)
                     .getPreviousState()
@@ -172,8 +196,10 @@ public class EC2Handler {
         return false;
     }
 
-    /** List all ec2 instances with their status and tags */
-    public List<Instance> listInstances() {
+    /**
+     * List all ec2 instances with their status and tags
+     * */
+    public List<Instance> listInstances(boolean print) {
         List<Instance> instances = new LinkedList<>();
         boolean done = false;   // done = True - when finished going over all the instances.
         DescribeInstancesRequest instRequest = new DescribeInstancesRequest();
@@ -200,7 +226,8 @@ public class EC2Handler {
                             tagsBuilder.append(" ");
                         }
 
-                        System.out.println("instance: " + instance.getInstanceId() + ", state: " + state + ", with tags: " + tagsBuilder.toString());
+                        if (print)
+                            System.out.println("instance: " + instance.getInstanceId() + ", state: " + state + ", with tags: " + tagsBuilder.toString());
                         instances.add(instance);
                     }
                 }
