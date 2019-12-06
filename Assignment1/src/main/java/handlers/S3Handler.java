@@ -176,8 +176,19 @@ public class S3Handler {
         }
     }
 
+    public void deleteAllFilesInBucket(String bucketName){
+        //erase all files
+        ObjectListing objectListing = getS3().listObjects(new ListObjectsRequest()
+                .withBucketName(bucketName)
+                .withPrefix(""));
+        for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
+            deleteFile(bucketName, objectSummary.getKey());
+        }
+    }
+
     public void deleteBucket(String bucketName) {
         try{
+            deleteAllFilesInBucket(bucketName);
             this.s3.deleteBucket(bucketName);
         } catch (AmazonServiceException ase) {
             printAseException(ase);
