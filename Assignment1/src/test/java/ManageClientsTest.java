@@ -168,7 +168,7 @@ public class ManageClientsTest {
     public static void main(String[] args) throws InterruptedException, IOException, ParseException {
 
         // initial configurations
-        ec2 = new EC2Handler();
+        ec2 = new EC2Handler(true);
         s3 = new S3Handler(ec2);
         sqs = new SQSHandler(ec2.getCredentials());
 

@@ -35,7 +35,7 @@ public class ManageWorkersTest {
         String fileName = args[0];
 //        clientInfoTest(fileName);
 
-        EC2Handler ec2 = new EC2Handler();
+        EC2Handler ec2 = new EC2Handler(true);
         System.out.println("connected to EC2");
 
         SQSHandler sqs = new SQSHandler(ec2.getCredentials());

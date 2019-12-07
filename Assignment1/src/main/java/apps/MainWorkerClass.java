@@ -16,7 +16,7 @@ import java.util.List;
 public class MainWorkerClass {
 
     public static void main(String[] args) throws Exception {
-        EC2Handler ec2 = new EC2Handler();
+        EC2Handler ec2 = new EC2Handler(false);
         SQSHandler sqs = new SQSHandler(ec2.getCredentials());
         SentimentAnalysisHandler sa = new SentimentAnalysisHandler();
         JSONParser jsonParser = new JSONParser();
@@ -29,9 +29,9 @@ public class MainWorkerClass {
         String W2M_QueueURL = sqs.getURL(Constants.WORKERS_TO_MANAGER_QUEUE);
 
         while(true){
-            //recieve reviews from Manager
+            //receive reviews from Manager
             List<Message> managerMessages = sqs.receiveMessages(M2W_QueueURL, true, true);
-            System.out.println("worker recieved " + managerMessages.size() + " Messages");
+            System.out.println("worker received " + managerMessages.size() + " Messages");
             for (Message managerMsg: managerMessages) {
                 JSONObject msgObj = Constants.validateMessageAndReturnObj(managerMsg, Constants.TAGS.MANAGER_2_WORKER, true);
                 if(msgObj==null)
@@ -51,7 +51,7 @@ public class MainWorkerClass {
                                 .stringifyUsingJSON());
             }
 
-            //delete recieved messages
+            //delete received messages
             if(!managerMessages.isEmpty())
                 sqs.deleteMessage(managerMessages, M2W_QueueURL);
 

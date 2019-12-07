@@ -22,7 +22,7 @@ public class Test {
 
         // initial configurations
         System.out.println("connect to EC2");
-        EC2Handler ec2 = new EC2Handler();
+        EC2Handler ec2 = new EC2Handler(true);
 
         System.out.println("connect to S3");
         S3Handler s3 = new S3Handler(ec2);
@@ -39,7 +39,7 @@ public class Test {
     public static void testInstances(EC2Handler ec2) throws Exception {
         System.out.println("\n\n*** test EC2 ***");
 
-        List<Instance> myInstances = ec2.launchEC2Instances(1, Constants.INSTANCE_TAG.TAG_MANAGER);
+        List<Instance> myInstances = ec2.launchEC2Instances(1, Constants.INSTANCE_TAG.MANAGER);
         if(myInstances != null){
             Instance manager = myInstances.get(0);
             String instanceIdToTerminate = manager.getInstanceId();

@@ -11,7 +11,7 @@ public class SQSTest {
     public static void main(String[] args) {
 
         // initial configurations
-        EC2Handler ec2 = new EC2Handler();
+        EC2Handler ec2 = new EC2Handler(true);
 
 //        AWSCredentialsProvider credentials = handlers.EC2Handler.getCredentials();
 

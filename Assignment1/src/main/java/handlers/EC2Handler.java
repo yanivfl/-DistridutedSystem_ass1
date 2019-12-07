@@ -1,29 +1,23 @@
 package handlers;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 import apps.Constants;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.*;
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.model.ObjectTagging;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectResult;
+import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
+import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
+import com.amazonaws.services.identitymanagement.model.GetRoleRequest;
+import com.amazonaws.services.identitymanagement.model.GetRoleResult;
 import com.amazonaws.services.ec2.model.Tag;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
-import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
-import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
 
 
 public class EC2Handler {
@@ -41,6 +35,22 @@ public class EC2Handler {
                 .withCredentials(credentials)
                 .withRegion(Regions.US_EAST_1)
                 .build();
+    }
+
+    public EC2Handler(boolean isClient) {
+        if (isClient)
+            this.credentials = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
+        else
+            this.credentials = new InstanceProfileCredentialsProvider(false);
+
+        this.ec2 = AmazonEC2ClientBuilder.standard()
+                .withCredentials(credentials)
+                .withRegion(Regions.US_EAST_1)
+                .build();
+    }
+
+    public void setCredentials(AWSCredentialsProvider credentials) {
+        this.credentials = credentials;
     }
 
     /**
@@ -67,39 +77,81 @@ public class EC2Handler {
         return credentials;
     }
 
+    public String getRoleARN(String roleName) {
+        AmazonIdentityManagement client = AmazonIdentityManagementClientBuilder.standard()
+                .withCredentials(getCredentials())
+                .withRegion(Regions.US_EAST_1)
+                .build();
+        GetRoleRequest request = new GetRoleRequest().withRoleName(roleName);
+        GetRoleResult response = client.getRole(request);
+        return response.getRole().getArn();
+    }
+
     public AmazonEC2 getEc2() {
         return ec2;
     }
 
     /**
-     * launch machine instances as requested in machineCount
-     * @param tagName: instance of EC2
-     * @param machineCount: number of machine instances to launch
-     * @return List<Instance>: list of machines instances we launched
+     * launch a manager machine instances
+     * params: managerArn with EC2, S3, SQS permissions
+     * returns: the manager instance
      */
-    public List<Instance> launchEC2Instances(int machineCount, Constants.INSTANCE_TAG tagName) {
+    public Instance launchManager_EC2Instance(String managerArn) {
+        try {
+            // launch instances
+            RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, 1, 1)
+                    .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn(managerArn))
+//                    .withUserData()   // TODO
+                    .withInstanceType(InstanceType.T2Micro.toString());
+            List<Instance> instances = this.ec2.runInstances(runInstanceRequest).getReservation().getInstances();
+            Instance manager = instances.get(0);
+
+            // tag the manager with tag manager
+            Tag tag = new Tag().withKey("Type").withValue(Constants.INSTANCE_TAG.MANAGER.toString());
+            CreateTagsRequest createTagsRequest = new CreateTagsRequest()
+                    .withResources(manager.getInstanceId())
+                    .withTags(tag);
+            ec2.createTags(createTagsRequest);
+
+            System.out.println("Launch instance: " + manager + ", with tag: " + Constants.INSTANCE_TAG.MANAGER);
+            return manager;
+
+        }
+        catch (AmazonServiceException ase) {
+            printASEException(ase);
+            return null;
+        }
+    }
+
+    /**
+     * launch workers machine instances as requested in machineCount
+     * params: machineCount - number of machine instances to launch, managerArn - with EC2, S3, SQS permissions
+     * returns: List<Instance> list of machines instances we launched
+     */
+    public List<Instance> launchWorkers_EC2Instances(int machineCount, String workersArn) {
         try {
             // launch instances
             RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, machineCount, machineCount)
-//                    .withIamInstanceProfile()     // TODO
+                    .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn(workersArn))
 //                    .withUserData()   // TODO
                     .withInstanceType(InstanceType.T2Micro.toString());
             List<Instance> instances = this.ec2.runInstances(runInstanceRequest).getReservation().getInstances();
 
             // tag instances with the given tag
             for (Instance inst: instances) {
-                Tag tag = new Tag().withKey("Type").withValue(tagName.toString());
-                CreateTagsRequest createTagsRequest = new CreateTagsRequest().
-                        withResources(inst.getInstanceId())
+                Tag tag = new Tag().withKey("Type").withValue(Constants.INSTANCE_TAG.WORKER.toString());
+                CreateTagsRequest createTagsRequest = new CreateTagsRequest()
+                        .withResources(inst.getInstanceId())
                         .withTags(tag);
                 ec2.createTags(createTagsRequest);
             }
 
             System.out.println("Launch instances: " + instances);
-            System.out.println("You launched: " + instances.size() + " instances" + ", with tag: " + tagName);
+            System.out.println("You launched: " + instances.size() + " instances" + ", with tag: " + Constants.INSTANCE_TAG.WORKER);
             return instances;
 
-        } catch (AmazonServiceException ase) {
+        }
+        catch (AmazonServiceException ase) {
             printASEException(ase);
             return null;
         }
@@ -256,6 +308,44 @@ public class EC2Handler {
         System.out.println("Error Code: " + ase.getErrorCode());
         System.out.println("Request ID: " + ase.getRequestId());
 
+    }
+
+
+
+    // ************************* For tests usage ***************************
+
+    /** For tests usage
+     * launch machine instances as requested in machineCount
+     * @param tagName: instance of EC2
+     * @param machineCount: number of machine instances to launch
+     * @return List<Instance>: list of machines instances we launched
+     */
+    public List<Instance> launchEC2Instances(int machineCount, Constants.INSTANCE_TAG tagName) {
+        try {
+            // launch instances
+            RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, machineCount, machineCount)
+//                    .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn())     // TODO
+//                    .withUserData()   // TODO
+                    .withInstanceType(InstanceType.T2Micro.toString());
+            List<Instance> instances = this.ec2.runInstances(runInstanceRequest).getReservation().getInstances();
+
+            // tag instances with the given tag
+            for (Instance inst: instances) {
+                Tag tag = new Tag().withKey("Type").withValue(tagName.toString());
+                CreateTagsRequest createTagsRequest = new CreateTagsRequest().
+                        withResources(inst.getInstanceId())
+                        .withTags(tag);
+                ec2.createTags(createTagsRequest);
+            }
+
+            System.out.println("Launch instances: " + instances);
+            System.out.println("You launched: " + instances.size() + " instances" + ", with tag: " + tagName);
+            return instances;
+
+        } catch (AmazonServiceException ase) {
+            printASEException(ase);
+            return null;
+        }
     }
 }
 

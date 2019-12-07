@@ -107,16 +107,15 @@ public class ManageClients implements Runnable {
                 extraWorkersToLaunch++;
             }
 
+            int addRegularWorkers = Math.max(workersNeeded - regulerWorkersCount.get(), 0);
+            int numWorkersToLaunch = addRegularWorkers + extraWorkersToLaunch;
 
-            int addRegulerWorkers = Math.max(workersNeeded - regulerWorkersCount.get(), 0);
-            int numWorkersToLaunch = addRegulerWorkers + extraWorkersToLaunch;
-
-            
             // should start more workers
             if (numWorkersToLaunch > 0) {
-                ec2.launchEC2Instances(numWorkersToLaunch, Constants.INSTANCE_TAG.TAG_WORKER);
+                String workersArn = ec2.getRoleARN(Constants.WORKERS_ROLE);
+                ec2.launchWorkers_EC2Instances(numWorkersToLaunch, workersArn);
               }
-            regulerWorkersCount.set(regulerWorkersCount.get() + addRegulerWorkers);
+            regulerWorkersCount.set(regulerWorkersCount.get() + addRegularWorkers);
             waitingObject.notifyAll();
         }
     }

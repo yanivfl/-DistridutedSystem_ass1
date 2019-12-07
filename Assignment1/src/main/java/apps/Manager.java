@@ -40,7 +40,7 @@ public class Manager {
     public static void initialConfigurations() {
 
         // initial configurations
-        ec2 = new EC2Handler();
+        ec2 = new EC2Handler(false);
         s3 = new S3Handler(ec2);
         sqs = new SQSHandler(ec2.getCredentials());     // TODO: change this!
 
@@ -128,11 +128,11 @@ public class Manager {
         for (Instance instance: instances) {
 
             for (Tag tag: instance.getTags()) {
-                if (tag.getValue().equals(Constants.INSTANCE_TAG.TAG_WORKER.toString())) {
+                if (tag.getValue().equals(Constants.INSTANCE_TAG.WORKER.toString())) {
                     ec2.terminateEC2Instance(instance.getInstanceId());
                 }
                 else {
-                    if (tag.getValue().equals(Constants.INSTANCE_TAG.TAG_MANAGER.toString())) {
+                    if (tag.getValue().equals(Constants.INSTANCE_TAG.MANAGER.toString())) {
                         managerInstance = instance;
                     }
                 }

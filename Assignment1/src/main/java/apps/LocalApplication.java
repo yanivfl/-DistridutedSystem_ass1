@@ -38,7 +38,8 @@ public class LocalApplication {
     public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
 
         // start the manager
-        ec2.launchEC2Instances(1, Constants.INSTANCE_TAG.TAG_MANAGER);
+        String managerArn = ec2.getRoleARN(Constants.MANAGER_ROLE);
+        ec2.launchManager_EC2Instance(managerArn);
 
         // start the queues
         sqs.createSQSQueue(Constants.CLIENTS_TO_MANAGER_QUEUE, true);
@@ -100,7 +101,7 @@ public class LocalApplication {
     public static void main(String[] args) throws Exception {
 
         // initial configurations
-        EC2Handler ec2 = new EC2Handler();
+        EC2Handler ec2 = new EC2Handler(true);
         S3Handler s3 = new S3Handler(ec2);
         SQSHandler sqs = new SQSHandler(ec2.getCredentials());
 
@@ -116,7 +117,7 @@ public class LocalApplication {
             reviewsPerWorker =Integer.parseInt(args[args.length-1]);
 
         // Check if a Manager node is active on the EC2 cloud. If it is not, the application will start the manager node and create the queues
-        if (!ec2.isTagExists(Constants.INSTANCE_TAG.TAG_MANAGER)) {
+        if (!ec2.isTagExists(Constants.INSTANCE_TAG.MANAGER)) {
             startManager(ec2, s3, sqs);
         }
 

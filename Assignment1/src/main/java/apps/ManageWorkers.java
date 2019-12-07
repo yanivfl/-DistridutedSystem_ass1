@@ -131,7 +131,7 @@ public class ManageWorkers implements Runnable {
                 List<Instance> instances = ec2.listInstances(false);
                 for (Instance instance: instances) {
                     for (Tag tag: instance.getTags()) {
-                        if (tag.getValue().equals(Constants.INSTANCE_TAG.TAG_WORKER.toString())
+                        if (tag.getValue().equals(Constants.INSTANCE_TAG.WORKER.toString())
                                 && instance.getState().getName().equals("running")) {
                             ec2.terminateEC2Instance(instance.getInstanceId());
                             numberOfWorkersToTerminate --;

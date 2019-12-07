@@ -12,6 +12,9 @@ import java.io.InputStream;
 
 public class Constants {
 
+    public static final String MANAGER_ROLE = "EC2_S3_SQS_role";
+    public static final String WORKERS_ROLE = "SQS_role";
+
     public static final int ADD_EXTRA_WORKER = 3;
     public static final String AMI = "ami-b66ed3de";
     public static final String TAG = "tag";
@@ -45,7 +48,7 @@ public class Constants {
     public static final String S3policyPath = "RolePolicies/S3policy.json";
 
     public enum INSTANCE_TAG {
-        TAG_MANAGER, TAG_WORKER
+        MANAGER, WORKER
     }
 
 
