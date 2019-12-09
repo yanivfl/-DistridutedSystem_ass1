@@ -38,6 +38,9 @@ public class Constants {
     public static final String COUNTER = "counter";
     public static final String LOCK = "lock";
 
+    public static final String LOCAL = "local";
+    public static final String REMOTE = "remote";
+
     public static final String CLIENTS_TO_MANAGER_QUEUE= "Clients2ManagerQueue";
     public static final String MANAGER_TO_CLIENTS_QUEUE= "Manager2ClientsQueue";
     public static final String WORKERS_TO_MANAGER_QUEUE = "Workers2ManagerQueue";

@@ -37,10 +37,12 @@ public class Manager {
     private static final Object waitingObject = new Object();
 
 
-    public static void initialConfigurations() {
+    public static void initialConfigurations(boolean isClient) {
+
+
 
         // initial configurations
-        ec2 = new EC2Handler(false);
+        ec2 = new EC2Handler(isClient);
         s3 = new S3Handler(ec2);
         sqs = new SQSHandler(ec2.getCredentials());
 
@@ -57,8 +59,14 @@ public class Manager {
     }
 
     public static void main(String[] args) throws InterruptedException {
+        if (args.length < 1 ||  (!args[0].equals(Constants.LOCAL) && !args[0].equals(Constants.REMOTE)) ) {
+            System.out.println("To activate this Manager, put local or remote as first argument.");
+            return;
+        }
 
-        initialConfigurations();
+        boolean isClient = args[0].equals(Constants.LOCAL);
+
+        initialConfigurations(isClient);
 
         // start the first threads (1 for workers and 1 for clients)
         Thread workersThread = new Thread(new ManageWorkers(clientsInfo, clientsCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerClient, waitingObject, ec2, s3, sqs));

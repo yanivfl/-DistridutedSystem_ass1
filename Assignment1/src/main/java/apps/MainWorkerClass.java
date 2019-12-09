@@ -16,7 +16,14 @@ import java.util.List;
 public class MainWorkerClass {
 
     public static void main(String[] args) throws Exception {
-        EC2Handler ec2 = new EC2Handler(false);
+        if (args.length < 1 ||  (!args[0].equals(Constants.LOCAL) && !args[0].equals(Constants.REMOTE)) ) {
+            System.out.println("To activate this Worker, put  local or remote as first argument.");
+            return;
+        }
+
+        boolean isClient = args[0].equals(Constants.LOCAL);
+
+        EC2Handler ec2 = new EC2Handler(isClient);
         SQSHandler sqs = new SQSHandler(ec2.getCredentials());
         SentimentAnalysisHandler sa = new SentimentAnalysisHandler();
         JSONParser jsonParser = new JSONParser();

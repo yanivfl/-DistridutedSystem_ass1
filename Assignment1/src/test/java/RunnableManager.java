@@ -1,11 +1,11 @@
-import apps.MainWorkerClass;
+import apps.Manager;
 
-public class RunnableWorker implements Runnable{
+public class RunnableManager implements Runnable{
     @Override
     public void run() {
         String[] args = {"local"};
         try {
-            MainWorkerClass.main(args);
+            Manager.main(args);
         }catch(Exception e){
             System.out.println("Thread interrupted..."+e);
         }
