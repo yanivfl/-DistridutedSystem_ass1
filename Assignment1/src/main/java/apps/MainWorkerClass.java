@@ -15,6 +15,8 @@ import java.util.List;
 
 public class MainWorkerClass {
 
+    // TODO: fix user data for the worker!! (according to the assignment running description
+
     public static void main(String[] args) throws Exception {
         if (args.length < 1 ||  (!args[0].equals(Constants.LOCAL) && !args[0].equals(Constants.REMOTE)) ) {
             System.out.println("To activate this Worker, put  local or remote as first argument.");

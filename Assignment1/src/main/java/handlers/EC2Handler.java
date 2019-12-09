@@ -20,6 +20,7 @@ import com.amazonaws.services.ec2.model.*;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
+import com.amazonaws.services.identitymanagement.model.GetInstanceProfileRequest;
 import com.amazonaws.services.identitymanagement.model.GetRoleRequest;
 import com.amazonaws.services.identitymanagement.model.GetRoleResult;
 import com.amazonaws.services.ec2.model.Tag;
@@ -77,7 +78,9 @@ public class EC2Handler {
                 .build();
         GetRoleRequest request = new GetRoleRequest().withRoleName(roleName);
         GetRoleResult response = client.getRole(request);
-        return response.getRole().getArn();
+        String arn = response.getRole().getArn();
+        System.out.println("Got ARN: " + arn);
+        return arn;
     }
 
     public AmazonEC2 getEc2() {
@@ -95,7 +98,7 @@ public class EC2Handler {
 
             // launch instances
             RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, 1, 1)
-                    .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn(managerArn))
+                    .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn(managerArn.replaceFirst("role", "instance-profile")))
                     .withUserData(userData)
                     .withInstanceType(InstanceType.T2Micro.toString());
             List<Instance> instances = this.ec2.runInstances(runInstanceRequest).getReservation().getInstances();
