@@ -22,7 +22,7 @@ public class SQSTest {
 
         try {
             System.out.println("connect to SQS");
-            sqs = new SQSHandler(ec2.getCredentials());
+            sqs = new SQSHandler(true);
 
             System.out.println("Creating a new SQS queue called MyQueue.\n");
             myQueueURL = sqs.createSQSQueue("MyQueue1", true);

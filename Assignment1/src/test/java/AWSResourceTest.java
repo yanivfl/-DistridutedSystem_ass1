@@ -27,8 +27,8 @@ public class AWSResourceTest {
 
         //Configurations
         EC2Handler ec2 = new EC2Handler(true);
-        S3Handler s3 = new S3Handler(ec2);
-        SQSHandler sqs = new SQSHandler(ec2.getCredentials());
+        S3Handler s3 = new S3Handler(true);
+        SQSHandler sqs = new SQSHandler(true);
 
         System.out.println("\nList all instances");
         List<Instance> instancesList = ec2.listInstances(true);

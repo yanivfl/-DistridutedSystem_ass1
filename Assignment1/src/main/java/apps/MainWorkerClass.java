@@ -24,7 +24,7 @@ public class MainWorkerClass {
         boolean isClient = args[0].equals(Constants.LOCAL);
 
         EC2Handler ec2 = new EC2Handler(isClient);
-        SQSHandler sqs = new SQSHandler(ec2.getCredentials());
+        SQSHandler sqs = new SQSHandler(isClient);
         SentimentAnalysisHandler sa = new SentimentAnalysisHandler();
         JSONParser jsonParser = new JSONParser();
         String review;
