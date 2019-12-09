@@ -7,8 +7,10 @@ public class RunnableLocalApp implements Runnable{
         String[] args = {"/home/yaniv/workSpace/dsps/reviews/test_json", "output1.html", "10" };
         try {
             LocalApplication.main(args);
+
         }catch(Exception e){
-            System.out.println("Thread interrupted..."+e);
+            System.out.println("Local App Thread interrupted..."+e);
+            e.printStackTrace();
         }
     }
 }

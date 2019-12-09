@@ -54,7 +54,7 @@ public class LocalApplication {
      * Create an html file representing the results from the summery.
      * params: appID, numOutput, summery
      */
-    public static void createHtml(UUID appID, int numOutput, InputStream summery) throws IOException, ParseException {
+    public static void createHtml(UUID appID, String htmlName, InputStream summery) throws IOException, ParseException {
 
         // create the string
         StringBuilder html = new StringBuilder();
@@ -63,11 +63,13 @@ public class LocalApplication {
 
         // go through the summery output file line by line
         BufferedReader reader = new BufferedReader(new InputStreamReader(summery));
+        JSONParser parser = new JSONParser();
         while(reader.ready()) {
             String line = reader.readLine();
+            System.out.println("DEBUG APP: Line is: " + line);
+            if(line == null) break;
 
             // parse line using JSON
-            JSONParser parser = new JSONParser();
             JSONObject obj = (JSONObject) parser.parse(line);
 
             if (Constants.TAGS.valueOf((String) obj.get("tag")) != Constants.TAGS.WORKER_2_MANAGER)
@@ -94,9 +96,11 @@ public class LocalApplication {
         html.append("</ul>\n</body>\n</html>");
 
         // create the HTML file
-        String fileName = "Output_for_app_" + appID.toString() + "_no._" + numOutput + ".html";
-        File htmlFile = new File(fileName);
-        Files.write(Paths.get(fileName), html.toString().getBytes());
+
+        htmlName = htmlName.endsWith(".html")? htmlName : htmlName + ".html";
+
+        new File(htmlName);
+        Files.write(Paths.get(htmlName), html.toString().getBytes());
     }
 
     public static void main(String[] args) throws Exception {
@@ -133,12 +137,15 @@ public class LocalApplication {
         // Upload all the input files to S3
         String[] keyNamesIn = new String[num_files];
         String[] keyNamesOut = new String[num_files];
+        String[] htmlNames = new String[num_files];
 
         for (int i=0; i<num_files; i++) {
             String fileName = args[i];
 
             // upload the input file
             keyNamesIn[i] = s3.uploadFileToS3(myBucket, fileName);
+
+            htmlNames[i] = args[i+num_files];
 
             // this will be the keyName of the output file
             keyNamesOut[i] = s3.getAwsFileName(fileName) + "out";
@@ -176,7 +183,7 @@ public class LocalApplication {
         for (int i=0; i<num_files; i++) {
             String keyNameOut = keyNamesOut[i];
             S3Object object = s3.getS3().getObject(new GetObjectRequest(myBucket, keyNameOut));
-            createHtml(appID, i, object.getObjectContent());
+            createHtml(appID, htmlNames[i], object.getObjectContent());
         }
 
         // Send a termination message to the Manager if it was supplied as one of its input arguments.

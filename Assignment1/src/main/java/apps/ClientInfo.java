@@ -72,6 +72,7 @@ public class ClientInfo {
                     System.out.println("msg already exists in file");
                     return false;
                 }
+                if(line==null) break;
             }
             return true;
         } catch (IOException e ){

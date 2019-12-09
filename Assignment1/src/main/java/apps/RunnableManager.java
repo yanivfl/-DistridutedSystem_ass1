@@ -8,7 +8,8 @@ public class RunnableManager implements Runnable{
             System.out.println("Manager: started running");
             Manager.main(args);
         }catch(Exception e){
-            System.out.println("Thread interrupted..."+e);
+            System.out.println("Manager Thread interrupted..."+e);
+            e.printStackTrace();
         }
     }
 }

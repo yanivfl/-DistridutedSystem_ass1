@@ -78,7 +78,7 @@ public class ManageWorkers implements Runnable {
                    long reviewsLeft = clientInfo.decOutputCounter(inKey);
                    if (reviewsLeft == 0){
                        String outKey = clientInfo.getOutKey(inKey);
-                       System.out.println("DEBUG: {inBucket: " +inBucket + ", inKey: " + inKey + ", outKey: " + outKey + "}");
+                       System.out.println("DEBUG Manage Workers: {inBucket: " +inBucket + ", inKey: " + inKey + ", outKey: " + outKey + "}");
                        s3.uploadLocalToS3(inBucket, clientInfo.getLocalFileName(inBucket,inKey), outKey);
                       clientInfo.deleteLocalFile(inBucket, inKey);
 
