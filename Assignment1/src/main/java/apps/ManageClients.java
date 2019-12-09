@@ -173,7 +173,7 @@ public class ManageClients implements Runnable {
 
         // Checks the SQS message count and starts Worker processes (nodes) accordingly.
         clientInfo.addToReviewsCounter(reviewsCounter);
-        if(clientInfo.incInputFilesRecieved()==numFiles){
+        if (clientInfo.incInputFilesRecieved() == numFiles){
             addWorkersIfNeeded(reviewsPerWorker, clientInfo.getTotalReviews());
         }
 

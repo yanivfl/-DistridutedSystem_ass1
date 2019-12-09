@@ -2,6 +2,7 @@ import apps.Constants;
 import com.amazonaws.services.ec2.model.Instance;
 import handlers.EC2Handler;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -9,8 +10,31 @@ public class EC2Test {
 
     public static void main(String[] args) throws Exception {
 
-        runInstanceWithTag();
+        // client
+//        EC2Handler ec2 = new EC2Handler(true);
+
+//        testUserDataCreation(null);
+
+//        launchManagerAndWorkers(ec2);
     }
+
+    // ****************** important tests ******************
+
+    // TODO
+    /** This test launches a manager instance on ec2 that launch a worker on ec2.
+     * 1. The test verify the user data works.
+     * 2. The test verify that the worker has SQS permissions and that the manager has EC2, S3, SQS permissions
+     */
+    private static void launchManagerAndWorkers(EC2Handler ec2) {
+
+
+
+
+    }
+
+
+
+    // ******************* minor tests *********************
 
     private static void runInstanceWithTag() throws Exception {
         System.out.println("Test run instances with tags");
@@ -21,7 +45,7 @@ public class EC2Test {
 
         try {
             System.out.println("launch 1 manager");
-            Instance manager = ec2.launchManager_EC2Instance(ec2.getRoleARN(Constants.MANAGER_ROLE));
+            Instance manager = ec2.launchManager_EC2Instance(ec2.getRoleARN(Constants.MANAGER_ROLE), Constants.USER_DATA_PATH);
             if (manager == null) {
                 System.out.println("FAIL!! - failed to create a manager");
                 return;
@@ -56,4 +80,11 @@ public class EC2Test {
             }
         }
     }
+
+    private static void testUserDataCreation(EC2Handler ec2) throws IOException {
+        String filePath = "user_data.sh";
+        System.out.println(ec2.encodeUserDataFile(filePath));
+
+    }
+
 }

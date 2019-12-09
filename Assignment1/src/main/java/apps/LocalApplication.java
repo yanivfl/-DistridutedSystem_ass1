@@ -35,11 +35,11 @@ public class LocalApplication {
      * starts the manager instance and creates the queues
      * params: ec2, s3, sqs
      */
-    public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
+    public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) throws IOException {
 
         // start the manager
         String managerArn = ec2.getRoleARN(Constants.MANAGER_ROLE);
-        ec2.launchManager_EC2Instance(managerArn);
+        ec2.launchManager_EC2Instance(managerArn, Constants.USER_DATA_PATH);
 
         // start the queues
         sqs.createSQSQueue(Constants.CLIENTS_TO_MANAGER_QUEUE, true);

@@ -1,5 +1,10 @@
 package handlers;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -18,6 +23,7 @@ import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientB
 import com.amazonaws.services.identitymanagement.model.GetRoleRequest;
 import com.amazonaws.services.identitymanagement.model.GetRoleResult;
 import com.amazonaws.services.ec2.model.Tag;
+import org.apache.commons.codec.binary.Base64;
 
 
 public class EC2Handler {
@@ -26,17 +32,10 @@ public class EC2Handler {
     private AmazonEC2 ec2;
 
     /**
-     * Create our credentials file at ~/.aws/credentials
+     * For a client - create our credentials file at ~/.aws/credentials
+     * For non client - gets the credentials from the role used to create this instance
      * Initialize a connection with our EC2
      */
-    public EC2Handler() {
-        this.credentials = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
-        this.ec2 = AmazonEC2ClientBuilder.standard()
-                .withCredentials(credentials)
-                .withRegion(Regions.US_EAST_1)
-                .build();
-    }
-
     public EC2Handler(boolean isClient) {
         if (isClient)
             this.credentials = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
@@ -54,24 +53,15 @@ public class EC2Handler {
     }
 
     /**
-     * This is for local app usage only
+     * Creates a Base64 string from a given filePath of a userdata.
+     * params: filePath
+     * returns: userData string in base64
      */
-    //TODO
-//    public AWSCredentials getStaticSecureCredentials(String roleArn, String roleSessionName) {
-//        AWSSecurityTokenService client = AWSSecurityTokenServiceClientBuilder.standard().build();
-//
-//        AssumeRoleRequest request = new AssumeRoleRequest()
-//                .withRoleArn(roleArn)
-//                .withRoleSessionName(roleSessionName)
-//                .withPolicy(Constants.EC2policyPath)
-//                .withPolicy(Constants.S3policyPath)
-//                .withPolicy(Constants.SQSpolicyPath)
-//                .withDurationSeconds(3600).withExternalId("123ABC");
-//
-//        AssumeRoleResult response = client.assumeRole(request);
-//
-//        return response.getCredentials();
-//    }
+    public String encodeUserDataFile(String filePath) throws IOException {
+        byte[] encoded = Files.readAllBytes(Paths.get(filePath));
+        String userDataContent = new String(encoded, Charset.defaultCharset());
+        return Base64.encodeBase64String(userDataContent.getBytes());
+    }
 
     public AWSCredentialsProvider getCredentials() {
         return credentials;
@@ -96,12 +86,14 @@ public class EC2Handler {
      * params: managerArn with EC2, S3, SQS permissions
      * returns: the manager instance
      */
-    public Instance launchManager_EC2Instance(String managerArn) {
+    public Instance launchManager_EC2Instance(String managerArn, String userDataPath) throws IOException {
         try {
+            String userData = encodeUserDataFile(userDataPath);
+
             // launch instances
             RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, 1, 1)
                     .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn(managerArn))
-//                    .withUserData()   // TODO
+                    .withUserData(userData)
                     .withInstanceType(InstanceType.T2Micro.toString());
             List<Instance> instances = this.ec2.runInstances(runInstanceRequest).getReservation().getInstances();
             Instance manager = instances.get(0);

@@ -42,7 +42,7 @@ public class Manager {
         // initial configurations
         ec2 = new EC2Handler(false);
         s3 = new S3Handler(ec2);
-        sqs = new SQSHandler(ec2.getCredentials());     // TODO: change this!
+        sqs = new SQSHandler(ec2.getCredentials());
 
         clientsCount = new AtomicInteger(0);
         regulerWorkersCount = new AtomicInteger(0);
@@ -81,7 +81,7 @@ public class Manager {
                 // 1. new worker - in ManageClients
                 // 2. new client - in ManageClients
                 // 3. client is done - in ManageWorkers
-                // 4. worker is done    // TODO
+                // 4. worker is done  - in ManageWorkers
                 waitingObject.wait();
 
                 // clientsCount can increase only on waitingObject synchronization

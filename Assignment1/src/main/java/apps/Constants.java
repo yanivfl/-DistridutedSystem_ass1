@@ -46,6 +46,7 @@ public class Constants {
     public static final String SQSpolicyPath = "RolePolicies/SQSpolicy.json";
     public static final String EC2policyPath = "RolePolicies/EC2policy.json";
     public static final String S3policyPath = "RolePolicies/S3policy.json";
+    public static final String USER_DATA_PATH = "user_data.sh";
 
     public enum INSTANCE_TAG {
         MANAGER, WORKER
