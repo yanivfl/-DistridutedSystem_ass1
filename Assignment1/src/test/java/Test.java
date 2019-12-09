@@ -43,7 +43,7 @@ public class Test {
         if(myInstances != null){
             Instance manager = myInstances.get(0);
             String instanceIdToTerminate = manager.getInstanceId();
-            ec2.terminateEC2Instance(instanceIdToTerminate);
+            ec2.terminateEC2Instance(instanceIdToTerminate, Constants.DEBUG_MODE);
         }
     }
 

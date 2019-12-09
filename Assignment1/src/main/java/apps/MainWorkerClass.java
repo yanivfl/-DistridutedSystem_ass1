@@ -16,17 +16,8 @@ import java.util.List;
 public class MainWorkerClass {
 
     public static void main(String[] args) throws Exception {
-        if (args.length < 1 ||  (!args[0].equals(Constants.LOCAL) && !args[0].equals(Constants.REMOTE)) ) {
-            System.out.println("To activate this Worker, put  local or remote as first argument.");
-            return;
-        }
-
-        boolean isClient = args[0].equals(Constants.LOCAL);
-
-        EC2Handler ec2 = new EC2Handler(isClient);
-        SQSHandler sqs = new SQSHandler(isClient);
+        SQSHandler sqs = new SQSHandler(Constants.DEBUG_MODE);
         SentimentAnalysisHandler sa = new SentimentAnalysisHandler();
-        JSONParser jsonParser = new JSONParser();
         String review;
         int sentiment;
 
@@ -61,7 +52,6 @@ public class MainWorkerClass {
             //delete received messages
             if(!managerMessages.isEmpty())
                 sqs.deleteMessage(managerMessages, M2W_QueueURL);
-
 
         }
 

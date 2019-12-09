@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -56,17 +57,15 @@ public class Manager {
         workersThreads = new LinkedList<>();
         clientsThreadCount = 0;
         workersThreadCount = 0;
+
+        clientsInfo = new ConcurrentHashMap<>();
     }
 
     public static void main(String[] args) throws InterruptedException {
-        if (args.length < 1 ||  (!args[0].equals(Constants.LOCAL) && !args[0].equals(Constants.REMOTE)) ) {
-            System.out.println("To activate this Manager, put local or remote as first argument.");
-            return;
-        }
+        initialConfigurations(Constants.DEBUG_MODE);
 
-        boolean isClient = args[0].equals(Constants.LOCAL);
-
-        initialConfigurations(isClient);
+        //launch first worker! TODO if works this is not needed
+//        ec2.launchWorkers_EC2Instances(1,ec2.getRoleARN(Constants.WORKERS_ROLE), Constants.DEBUG_MODE );
 
         // start the first threads (1 for workers and 1 for clients)
         Thread workersThread = new Thread(new ManageWorkers(clientsInfo, clientsCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerClient, waitingObject, ec2, s3, sqs));
@@ -77,8 +76,10 @@ public class Manager {
 
         workersThreadCount++;
         clientsThreadCount++;
-
+        workersThread.setName("Manage-Workers-Thread");
         workersThread.start();
+
+        clientsThread.setName("Manage-clients-Thread");
         clientsThread.start();
 
         while (!terminate.get()) {
@@ -97,6 +98,7 @@ public class Manager {
                     clientsThread = new Thread(new ManageClients(clientsInfo, clientsCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerClient, terminate, waitingObject, ec2, s3, sqs));
                     clientsThreads.add(clientsThread);
                     clientsThreadCount++;
+                    clientsThread.setName("Manage-clients-Thread");
                     clientsThread.start();
                 }
 
@@ -105,6 +107,7 @@ public class Manager {
                     workersThread = new Thread(new ManageWorkers(clientsInfo, clientsCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerClient, waitingObject, ec2, s3, sqs));
                     workersThreads.add(workersThread);
                     workersThreadCount++;
+                    workersThread.setName("Manage-Workers-Thread");
                     workersThread.start();
                 }
 
@@ -137,7 +140,7 @@ public class Manager {
 
             for (Tag tag: instance.getTags()) {
                 if (tag.getValue().equals(Constants.INSTANCE_TAG.WORKER.toString())) {
-                    ec2.terminateEC2Instance(instance.getInstanceId());
+                    ec2.terminateEC2Instance(instance.getInstanceId(), Constants.DEBUG_MODE);
                 }
                 else {
                     if (tag.getValue().equals(Constants.INSTANCE_TAG.MANAGER.toString())) {
@@ -169,7 +172,7 @@ public class Manager {
         sqs.deleteQueue(M2W_QueueURL);
 
         // terminate - after this the program must end!
-        ec2.terminateEC2Instance(managerInstance.getInstanceId());
+        ec2.terminateEC2Instance(managerInstance.getInstanceId(), Constants.DEBUG_MODE);
 
 
 

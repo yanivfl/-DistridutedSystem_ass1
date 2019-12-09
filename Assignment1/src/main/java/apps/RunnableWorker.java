@@ -1,14 +1,14 @@
-import apps.MainWorkerClass;
+package apps;
 
 public class RunnableWorker implements Runnable{
     @Override
     public void run() {
-        String[] args = {"local"};
+        String[] args = new String[0];
         try {
-            System.out.println("WORKER: started runnig");
+            System.out.println("Worker: started running");
             MainWorkerClass.main(args);
         }catch(Exception e){
-            System.out.println("WORKER: Thread interrupted..."+e);
+            System.out.println("Thread interrupted..."+e);
         }
     }
 }

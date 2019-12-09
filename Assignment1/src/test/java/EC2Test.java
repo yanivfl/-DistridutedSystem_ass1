@@ -45,7 +45,7 @@ public class EC2Test {
 
         try {
             System.out.println("launch 1 manager");
-            Instance manager = ec2.launchManager_EC2Instance(ec2.getRoleARN(Constants.MANAGER_ROLE), Constants.USER_DATA_PATH);
+            Instance manager = ec2.launchManager_EC2Instance(ec2.getRoleARN(Constants.MANAGER_ROLE), Constants.USER_DATA_PATH, false);
             if (manager == null) {
                 System.out.println("FAIL!! - failed to create a manager");
                 return;
@@ -53,17 +53,17 @@ public class EC2Test {
             else
                 managerInstances.add(manager);
 
-            if (!ec2.isTagExists(Constants.INSTANCE_TAG.MANAGER))
+            if (!ec2.isTagExists(Constants.INSTANCE_TAG.MANAGER, false))
                 throw new Exception("FAIL!!");
-            if (ec2.isTagExists(Constants.INSTANCE_TAG.WORKER))
+            if (ec2.isTagExists(Constants.INSTANCE_TAG.WORKER, false))
                 throw new Exception("FAIL!!");
 
             System.out.println("launch 1 workers");
-            workersInstances = ec2.launchWorkers_EC2Instances(1, ec2.getRoleARN(Constants.WORKERS_ROLE));
+            workersInstances = ec2.launchWorkers_EC2Instances(1, ec2.getRoleARN(Constants.WORKERS_ROLE), false);
 
-            if (!ec2.isTagExists(Constants.INSTANCE_TAG.WORKER))
+            if (!ec2.isTagExists(Constants.INSTANCE_TAG.WORKER, false))
                 throw new Exception("FAIL!!");
-            if (!ec2.isTagExists(Constants.INSTANCE_TAG.MANAGER))
+            if (!ec2.isTagExists(Constants.INSTANCE_TAG.MANAGER, false))
                 throw new Exception("FAIL!!");
         }
         finally {
@@ -76,7 +76,7 @@ public class EC2Test {
     private static void terminateInstList(List<Instance> list, EC2Handler ec2) {
         if (list != null) {
             for (Instance inst : list) {
-                ec2.terminateEC2Instance(inst.getInstanceId());
+                ec2.terminateEC2Instance(inst.getInstanceId(), false);
             }
         }
     }

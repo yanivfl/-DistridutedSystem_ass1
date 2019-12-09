@@ -113,7 +113,7 @@ public class ManageClients implements Runnable {
             // should start more workers
             if (numWorkersToLaunch > 0) {
                 String workersArn = ec2.getRoleARN(Constants.WORKERS_ROLE);
-                ec2.launchWorkers_EC2Instances(numWorkersToLaunch, workersArn);
+                ec2.launchWorkers_EC2Instances(numWorkersToLaunch, workersArn, Constants.DEBUG_MODE);
               }
             regulerWorkersCount.set(regulerWorkersCount.get() + addRegularWorkers);
             waitingObject.notifyAll();
@@ -125,69 +125,76 @@ public class ManageClients implements Runnable {
      * 2. Distributes the operations to be performed on the reviews to the workers using SQS queue/s.
      * 3. Checks the SQS message count and starts Worker processes (nodes) accordingly.
      */
-    public void inputFileMessage(JSONObject msgObj) throws IOException, ParseException {
+    public void inputFileMessage(JSONObject msgObj) {
+        try{
+            System.out.println("DEBUG MANAGE CLIENTS: got message: " + msgObj.toJSONString());
 
-        // parse json
-        String bucket = (String) msgObj.get(Constants.BUCKET);
-        String inKey = (String) msgObj.get(Constants.IN_KEY);
-        String outKey = (String) msgObj.get(Constants.OUT_KEY);
-        long reviewsPerWorker = (Long) msgObj.get(Constants.REVIEWS_PER_WORKER);
-        int numFiles = ((Long) msgObj.get(Constants.NUM_FILES)).intValue();
+            // parse json
+            String bucket = (String) msgObj.get(Constants.BUCKET);
+            String inKey = (String) msgObj.get(Constants.IN_KEY);
+            String outKey = (String) msgObj.get(Constants.OUT_KEY);
+            long reviewsPerWorker = (Long) msgObj.get(Constants.REVIEWS_PER_WORKER);
+            int numFiles = ((Long) msgObj.get(Constants.NUM_FILES)).intValue();
 
-        // If in termination mode and this is a new client, do not accept it's messages (ignore)
-        if (terminate.get() && !clientsInfo.containsKey(bucket))
-            return;
+            // If in termination mode and this is a new client, do not accept it's messages (ignore)
+            if (terminate.get() && !clientsInfo.containsKey(bucket))
+                return;
 
-        // Initialize this local app client in the clients info map if it wasn't initialized yet.
-        // (first message initialize the ClientInfo)
-        ClientInfo clientInfo = new ClientInfo((int)reviewsPerWorker, numFiles);
-        ClientInfo tmp = clientsInfo.putIfAbsent(bucket, clientInfo);
+            // Initialize this local app client in the clients info map if it wasn't initialized yet.
+            // (first message initialize the ClientInfo)
+            ClientInfo clientInfo = new ClientInfo((int)reviewsPerWorker, numFiles);
+            ClientInfo tmp = clientsInfo.putIfAbsent(bucket, clientInfo); //returns null if succesfull. if not returns existing client
 
-        if (tmp == null) {
-            synchronized (waitingObject) {
-                clientsCount.incrementAndGet();
-                waitingObject.notifyAll();
+            if (tmp == null) {
+                synchronized (waitingObject) {
+                    clientsCount.incrementAndGet();
+                    waitingObject.notifyAll();
+                }
             }
+            else {
+                clientInfo = tmp;
+            }
+
+            // Downloads the input file from S3.
+            BufferedReader outputReader = s3.downloadFile(bucket, inKey);
+
+            // count how many review there are in this file and update ClientInfo for this local app
+            long reviewsCounter = countReviewsPerFile(outputReader);
+
+            // update client info
+            clientInfo.putOutputKey(inKey, outKey, reviewsCounter);
+
+            // Downloads the input file (again) from S3.
+            outputReader = s3.downloadFile(bucket, inKey);
+
+            // Get the (Manager -> Workers) queue
+            String M2W_QueueURL = sqs.getURL(Constants.MANAGER_TO_WORKERS_QUEUE);
+
+            // For each line of the file, go through the reviews array and for each review create a message to the workers and add it to the queue
+            sendMessagesToWorkers(outputReader, M2W_QueueURL, bucket, inKey);
+
+            // Checks the SQS message count and starts Worker processes (nodes) accordingly.
+            clientInfo.addToReviewsCounter(reviewsCounter);
+            if (clientInfo.incInputFilesRecieved() == numFiles){
+                addWorkersIfNeeded(reviewsPerWorker, clientInfo.getTotalReviews());
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        else {
-            clientInfo = tmp;
-        }
-
-        // Downloads the input file from S3.
-        BufferedReader outputReader = s3.downloadFile(bucket, inKey);
-
-        // count how many review there are in this file and update ClientInfo for this local app
-        long reviewsCounter = countReviewsPerFile(outputReader);
-
-        // update client info
-        clientInfo.putOutputKey(inKey, outKey, reviewsCounter);
-
-        // Downloads the input file (again) from S3.
-        outputReader = s3.downloadFile(bucket, inKey);
-
-        // Get the (Manager -> Workers) queue
-        String M2W_QueueURL = sqs.getURL(Constants.MANAGER_TO_WORKERS_QUEUE);
-
-        // For each line of the file, go through the reviews array and for each review create a message to the workers and add it to the queue
-        sendMessagesToWorkers(outputReader, M2W_QueueURL, bucket, inKey);
-
-        // Checks the SQS message count and starts Worker processes (nodes) accordingly.
-        clientInfo.addToReviewsCounter(reviewsCounter);
-        if (clientInfo.incInputFilesRecieved() == numFiles){
-            addWorkersIfNeeded(reviewsPerWorker, clientInfo.getTotalReviews());
-        }
-
     }
 
     /**
      * Starts the termination process.
      */
-    public void terminateMessage(JSONObject msgObj) {
+    public void terminateMessage() {
         terminate.set(true);
     }
 
     @Override
     public void run() {
+        System.out.println("Manage-Clients: started running");
 
         // Get the (Clients -> Manager) SQS queues URLs
         String C2M_QueueURL = sqs.getURL(Constants.CLIENTS_TO_MANAGER_QUEUE);
@@ -206,11 +213,11 @@ public class ManageClients implements Runnable {
                     if (jsonObject != null) {
                         inputFileMessage(jsonObject);
                     } else {
-                        jsonObject = Constants.validateMessageAndReturnObj(message, Constants.TAGS.CLIENT_2_MANAGER_terminate, true);
-                        terminateMessage(jsonObject);
+                        if(Constants.validateMessageAndReturnObj(message, Constants.TAGS.CLIENT_2_MANAGER_terminate, true) !=null)
+                            terminateMessage();
                     }
                 } catch (Exception e) {
-                    System.out.println("Got an unexpected message or can't parse message. Got exception: " + e);
+                    System.out.println("MANAGE_CLIENTS: Got an unexpected message or can't parse message. Got exception: " + e);
                     System.out.println("Ignored the message");
                 }
 
@@ -221,6 +228,8 @@ public class ManageClients implements Runnable {
 
             // If manager is in termination mode and finished handling all clients (existing prior to the termination message)
             // then this thread has finish
+            if (clientsInfo==null)
+                System.out.println("BRUHHHH U TRIPPIN, clientsInfo is null");
             if (clientsInfo.isEmpty() && terminate.get()) {
                 running = false;
             }

@@ -46,7 +46,7 @@ public class Client2Manager extends Base {
         obj.put(Constants.TAG, this.tag.toString());
         obj.put(Constants.BUCKET, this.bucket);
         obj.put(Constants.IN_KEY, this.inKey);
-        obj.put(Constants.OUTPUT_KEY, this.outKey);
+        obj.put(Constants.OUT_KEY, this.outKey);
         obj.put(Constants.REVIEWS_PER_WORKER, this.reviewsPerWorker);
         obj.put(Constants.NUM_FILES, this.numFiles);
         return obj.toJSONString();

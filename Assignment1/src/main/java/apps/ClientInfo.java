@@ -34,7 +34,7 @@ public class ClientInfo {
     }
 
     public String getOutKey(String inputKey){
-        return (String) in2outMap.get(inputKey).get(Constants.OUTPUT_KEY);
+        return (String) in2outMap.get(inputKey).get(Constants.OUT_KEY);
     }
 
     public boolean deleteLocalFile(String inBucket, String inputKey){
@@ -150,7 +150,7 @@ public class ClientInfo {
 
     public void putOutputKey(String inputKey, String outputKey, long counter) {
         Map outputDict = new HashMap<>();
-        outputDict.put(Constants.OUTPUT_KEY, outputKey);
+        outputDict.put(Constants.OUT_KEY, outputKey);
         outputDict.put(Constants.COUNTER, counter);
         outputDict.put(Constants.LOCK, new ReentrantLock());
         in2outMap.put(inputKey, outputDict);

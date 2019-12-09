@@ -24,7 +24,6 @@ public class Constants {
     public static final String TEXT= "text";
     public static final String IN_BUCKET= "inBucket";
     public static final String IN_KEY= "inKey";
-    public static final String OUT_KEY= "outKey";
     public static final String SENTIMENT= "sentiment";
     public static final String ENTITIES= "entities";
     public static final String IS_SARCASTIC= "isSarcastic";
@@ -34,7 +33,7 @@ public class Constants {
     public static final String REVIEWS_PER_WORKER= "reviewsPerWorker";
     public static final String NUM_FILES= "numFiles";
     public static final String IS_DONE = "isDone";
-    public static final String OUTPUT_KEY = "outputKey";
+    public static final String OUT_KEY = "outKey";
     public static final String COUNTER = "counter";
     public static final String LOCK = "lock";
 
@@ -93,11 +92,17 @@ public class Constants {
 
         if (Constants.TAGS.valueOf((String) msgObj.get(Constants.TAG)) != tag) {
             if (printError)
-                System.out.println("Got an unexpected message");
+                System.out.println("Got an unexpected message, should get tag " + tag.toString());
             return null;
         }
         return msgObj;
     }
+
+
+
+    //********************************* DEBUG ***************************************
+    //TODO change to false
+    public static boolean DEBUG_MODE = true;
 
 
 

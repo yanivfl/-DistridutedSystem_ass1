@@ -9,6 +9,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import apps.Constants;
+import apps.RunnableManager;
+import apps.RunnableWorker;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -89,7 +91,16 @@ public class EC2Handler {
      * params: managerArn with EC2, S3, SQS permissions
      * returns: the manager instance
      */
-    public Instance launchManager_EC2Instance(String managerArn, String userDataPath) throws IOException {
+    public Instance launchManager_EC2Instance(String managerArn, String userDataPath, boolean isDebug) throws IOException {
+        if(isDebug){
+            Runnable manager = new RunnableManager();
+            Thread managerThread = new Thread(manager);
+            managerThread.setName("Manager-Thread");
+            managerThread.start();
+            System.out.println("Launch instance: " + "DEBUG" + ", with tag: " + Constants.INSTANCE_TAG.MANAGER);
+            return null;
+        }
+
         try {
             String userData = encodeUserDataFile(userDataPath);
 
@@ -110,7 +121,6 @@ public class EC2Handler {
 
             System.out.println("Launch instance: " + manager + ", with tag: " + Constants.INSTANCE_TAG.MANAGER);
             return manager;
-
         }
         catch (AmazonServiceException ase) {
             printASEException(ase);
@@ -123,7 +133,18 @@ public class EC2Handler {
      * params: machineCount - number of machine instances to launch, managerArn - with EC2, S3, SQS permissions
      * returns: List<Instance> list of machines instances we launched
      */
-    public List<Instance> launchWorkers_EC2Instances(int machineCount, String workersArn) {
+    public List<Instance> launchWorkers_EC2Instances(int machineCount, String workersArn, boolean isDebug) {
+        if(isDebug){
+            for (int i = 0; i < machineCount; i++) {
+                Runnable worker = new RunnableWorker();
+                Thread workerThread = new Thread(worker);
+                workerThread.setName("Worker-Thread");
+                workerThread.start();
+                System.out.println("Launch instances: " + "DEBUG");
+                System.out.println("You launched: " + machineCount + " instances" + ", with tag: " + Constants.INSTANCE_TAG.WORKER);
+            }
+            return new LinkedList<>();
+        }
         try {
             // launch instances
             RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, machineCount, machineCount)
@@ -157,7 +178,12 @@ public class EC2Handler {
      * @param instanecID
      * @return boolean: true  iff instance was terminated
      */
-    public boolean terminateEC2Instance(String instanecID) {
+    public boolean terminateEC2Instance(String instanecID, boolean isDebug) {
+        if (isDebug){
+            System.out.println("The Instance is terminated with id: "+ "DEBUG BRUHHHH");
+            return true;
+        }
+
         try {
             TerminateInstancesRequest terminateInstancesRequest = new TerminateInstancesRequest()
                     .withInstanceIds(instanecID);
@@ -181,7 +207,11 @@ public class EC2Handler {
      * params: ec2, tag
      * returns: True: There is an instance with the requested tag , False: otherwise
      */
-    public boolean isTagExists(Constants.INSTANCE_TAG tag) {
+    public boolean isTagExists(Constants.INSTANCE_TAG tag, boolean isDebug) {
+        if (isDebug){
+            return false; //turn on manager
+        }
+
         boolean done = false;   // done = True - when finished going over all the instances.
         DescribeInstancesRequest instRequest = new DescribeInstancesRequest();
 

@@ -47,6 +47,7 @@ public class ManageWorkers implements Runnable {
 
     @Override
     public void run() {
+        System.out.println("Manage-workers: started running");
         JSONParser jsonParser = new JSONParser();
 
         // Get the (Worker -> Manager) ( Manager -> Clients) SQS queues URLs
@@ -77,6 +78,7 @@ public class ManageWorkers implements Runnable {
                    long reviewsLeft = clientInfo.decOutputCounter(inKey);
                    if (reviewsLeft == 0){
                        String outKey = clientInfo.getOutKey(inKey);
+                       System.out.println("DEBUG: {inBucket: " +inBucket + ", inKey: " + inKey + ", outKey: " + outKey + "}");
                        s3.uploadLocalToS3(inBucket, clientInfo.getLocalFileName(inBucket,inKey), outKey);
                       clientInfo.deleteLocalFile(inBucket, inKey);
 
@@ -133,7 +135,7 @@ public class ManageWorkers implements Runnable {
                     for (Tag tag: instance.getTags()) {
                         if (tag.getValue().equals(Constants.INSTANCE_TAG.WORKER.toString())
                                 && instance.getState().getName().equals("running")) {
-                            ec2.terminateEC2Instance(instance.getInstanceId());
+                            ec2.terminateEC2Instance(instance.getInstanceId(), Constants.DEBUG_MODE);
                             numberOfWorkersToTerminate --;
                             //break;
                         }

@@ -37,15 +37,16 @@ public class LocalApplication {
      */
     public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) throws IOException {
 
-        // start the manager
-        String managerArn = ec2.getRoleARN(Constants.MANAGER_ROLE);
-        ec2.launchManager_EC2Instance(managerArn, Constants.USER_DATA_PATH);
-
         // start the queues
         sqs.createSQSQueue(Constants.CLIENTS_TO_MANAGER_QUEUE, true);
         sqs.createSQSQueue(Constants.MANAGER_TO_CLIENTS_QUEUE, false);
         sqs.createSQSQueue(Constants.WORKERS_TO_MANAGER_QUEUE, false);
         sqs.createSQSQueue(Constants.MANAGER_TO_WORKERS_QUEUE, true);
+
+
+        // start the manager
+        String managerArn = ec2.getRoleARN(Constants.MANAGER_ROLE);
+        ec2.launchManager_EC2Instance(managerArn, Constants.USER_DATA_PATH, Constants.DEBUG_MODE);
 
     }
 
@@ -70,7 +71,7 @@ public class LocalApplication {
             JSONObject obj = (JSONObject) parser.parse(line);
 
             if (Constants.TAGS.valueOf((String) obj.get("tag")) != Constants.TAGS.WORKER_2_MANAGER)
-                throw new RuntimeException("Got an unexpected message - couldn't create an HTML file");
+                throw new RuntimeException("LOCAL_APP: Got an unexpected message - couldn't create an HTML file");
 
             String review = (String) obj.get(Constants.REVIEW);
             long sentiment = (Long) obj.get(Constants.SENTIMENT);
@@ -117,7 +118,7 @@ public class LocalApplication {
             reviewsPerWorker =Integer.parseInt(args[args.length-1]);
 
         // Check if a Manager node is active on the EC2 cloud. If it is not, the application will start the manager node and create the queues
-        if (!ec2.isTagExists(Constants.INSTANCE_TAG.MANAGER)) {
+        if (!ec2.isTagExists(Constants.INSTANCE_TAG.MANAGER, Constants.DEBUG_MODE)) {
             startManager(ec2, s3, sqs);
         }
 
