@@ -29,7 +29,7 @@ public class WorkerTest {
         EC2Handler ec2 = new EC2Handler(true);
         System.out.println("connected to EC2");
 
-        SQSHandler sqs = new SQSHandler(ec2.getCredentials());
+        SQSHandler sqs = new SQSHandler(true);
         System.out.println("connected to sqs");
 
         String W2M_QueueURL = null;

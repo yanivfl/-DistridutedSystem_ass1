@@ -38,10 +38,10 @@ public class ManageWorkersTest {
         EC2Handler ec2 = new EC2Handler(true);
         System.out.println("connected to EC2");
 
-        SQSHandler sqs = new SQSHandler(ec2.getCredentials());
+        SQSHandler sqs = new SQSHandler(true);
         System.out.println("connected to sqs");
 
-        S3Handler s3 = new S3Handler(ec2);
+        S3Handler s3 = new S3Handler(true);
         System.out.println("connected to s3");
 
         String W2M_QueueURL = null;

@@ -41,8 +41,8 @@ public class Manager {
 
         // initial configurations
         ec2 = new EC2Handler(false);
-        s3 = new S3Handler(ec2);
-        sqs = new SQSHandler(ec2.getCredentials());
+        s3 = new S3Handler(false);
+        sqs = new SQSHandler(false);
 
         clientsCount = new AtomicInteger(0);
         regulerWorkersCount = new AtomicInteger(0);

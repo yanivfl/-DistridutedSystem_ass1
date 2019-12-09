@@ -17,7 +17,7 @@ public class MainWorkerClass {
 
     public static void main(String[] args) throws Exception {
         EC2Handler ec2 = new EC2Handler(false);
-        SQSHandler sqs = new SQSHandler(ec2.getCredentials());
+        SQSHandler sqs = new SQSHandler(true);
         SentimentAnalysisHandler sa = new SentimentAnalysisHandler();
         JSONParser jsonParser = new JSONParser();
         String review;

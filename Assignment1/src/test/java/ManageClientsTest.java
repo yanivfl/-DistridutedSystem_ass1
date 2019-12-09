@@ -169,8 +169,8 @@ public class ManageClientsTest {
 
         // initial configurations
         ec2 = new EC2Handler(true);
-        s3 = new S3Handler(ec2);
-        sqs = new SQSHandler(ec2.getCredentials());
+        s3 = new S3Handler(true);
+        sqs = new SQSHandler(true);
 
         // Start queues
         sqs.createSQSQueue(Constants.CLIENTS_TO_MANAGER_QUEUE, true);

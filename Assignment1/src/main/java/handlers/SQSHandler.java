@@ -7,6 +7,9 @@ import apps.Constants;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
@@ -22,26 +25,34 @@ public class SQSHandler {
     private AWSCredentialsProvider credentials;
     private AmazonSQS sqs;
 
-
     /**
      * Initialize a connection with our SQS
-     * params: credentials
+     * params: isClient
+     * For a client - create our credentials file at ~/.aws/credentials
+     * For non client - gets the credentials from the role used to create this instance
      */
-    public SQSHandler(AWSCredentialsProvider credentials){
+    public SQSHandler(boolean isClient){
         // connect to SQS
-        this.credentials = credentials;
+        createCredentials(isClient);
         this.sqs = AmazonSQSClientBuilder.standard()
                 .withCredentials(credentials)
                 .withRegion("us-west-2")
                 .build();
     }
 
+    private void createCredentials(boolean isClient) {
+        if (isClient)
+            this.credentials = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
+        else
+            this.credentials = new InstanceProfileCredentialsProvider(false);
+    }
+
     public AmazonSQS getSqs() {
         return sqs;
     }
 
-    public String getURL(String QueName){
-        return sqs.getQueueUrl(QueName).getQueueUrl();
+    public String getURL(String QueueName){
+        return sqs.getQueueUrl(QueueName).getQueueUrl();
     }
 
     /**

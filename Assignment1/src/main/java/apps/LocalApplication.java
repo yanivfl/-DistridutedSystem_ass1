@@ -102,8 +102,8 @@ public class LocalApplication {
 
         // initial configurations
         EC2Handler ec2 = new EC2Handler(true);
-        S3Handler s3 = new S3Handler(ec2);
-        SQSHandler sqs = new SQSHandler(ec2.getCredentials());
+        S3Handler s3 = new S3Handler(true);
+        SQSHandler sqs = new SQSHandler(true);
 
         // extract input file name, output file names and optional termination message from args
         // example args: inputFileName1… inputFileNameN outputFileName1… outputFileNameN n terminate(optional)

@@ -25,7 +25,7 @@ public class Test {
         EC2Handler ec2 = new EC2Handler(true);
 
         System.out.println("connect to S3");
-        S3Handler s3 = new S3Handler(ec2);
+        S3Handler s3 = new S3Handler(true);
 
 //        testInstances(ec2);
         String fileName = "DemoFileToS3.txt";
@@ -116,7 +116,7 @@ public class Test {
 
         try {
             System.out.println("connect to SQS");
-            sqs = new SQSHandler(credentials);
+            sqs = new SQSHandler(true);
 
             System.out.println("Creating a new SQS queue called MyQueue.\n");
             myQueueURL = sqs.createSQSQueue("MyQueue", true);

@@ -37,15 +37,18 @@ public class EC2Handler {
      * Initialize a connection with our EC2
      */
     public EC2Handler(boolean isClient) {
-        if (isClient)
-            this.credentials = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
-        else
-            this.credentials = new InstanceProfileCredentialsProvider(false);
-
+        createCredentials(isClient);
         this.ec2 = AmazonEC2ClientBuilder.standard()
                 .withCredentials(credentials)
                 .withRegion(Regions.US_EAST_1)
                 .build();
+    }
+
+    public void createCredentials(boolean isClient) {
+        if (isClient)
+            this.credentials = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
+        else
+            this.credentials = new InstanceProfileCredentialsProvider(false);
     }
 
     public void setCredentials(AWSCredentialsProvider credentials) {

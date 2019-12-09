@@ -6,6 +6,10 @@ import java.util.List;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -15,18 +19,27 @@ import com.amazonaws.services.s3.model.*;
 public class S3Handler {
 
     private AmazonS3 s3;
-    private EC2Handler ec2;
+    private AWSCredentialsProvider credentials;
 
     /**
      * initialize a connection with our S3
-     * params: ec2
+     * params: isClient
+     * For a client - create our credentials file at ~/.aws/credentials
+     * For non client - gets the credentials from the role used to create this instance
      */
-    public S3Handler(EC2Handler ec2) {
-        this.ec2 = ec2;
+    public S3Handler(boolean isClient) {
+        createCredentials(isClient);
         this.s3 = AmazonS3ClientBuilder.standard()
-                .withCredentials(ec2.getCredentials())
+                .withCredentials(credentials)
                 .withRegion(Regions.US_EAST_1)
                 .build();
+    }
+
+    private void createCredentials(boolean isClient) {
+        if (isClient)
+            this.credentials = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
+        else
+            this.credentials = new InstanceProfileCredentialsProvider(false);
     }
 
     public AmazonS3 getS3() {
@@ -34,7 +47,7 @@ public class S3Handler {
     }
 
     public String getAwsBucketName(String name){
-        String bucketName = this.ec2.getCredentials().getCredentials().getAWSAccessKeyId() + "a" + name.
+        String bucketName = credentials.getCredentials().getAWSAccessKeyId() + "a" + name.
                 replace('\\', 'a').
                 replace('/', 'a').
                 replace(':', 'a').
