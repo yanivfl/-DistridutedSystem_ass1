@@ -44,6 +44,7 @@ public class ManageClients implements Runnable {
                          AtomicInteger workersCount, AtomicInteger extraWorkersCount, PriorityQueue<Integer> maxWorkersPerFile,
                          AtomicBoolean terminate, Object waitingObject,
                          EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
+
         this.clientsInfo = clientInfo;
         this.filesCount = filesCount;
         this.regulerWorkersCount = workersCount;
@@ -203,7 +204,7 @@ public class ManageClients implements Runnable {
         // Continue until termination
         JSONObject jsonObject;
         boolean running = true;
-        while (running) {
+        while (running && !Thread.interrupted()) {
             System.out.println("Checking queue for messages from clients");
 
             List<Message> messages = new LinkedList<>();
@@ -217,10 +218,6 @@ public class ManageClients implements Runnable {
                     e.printStackTrace();
                 }
             }
-
-
-
-//            List<Message> messages = sqs.safelyRecieveMessages(C2M_QueueURL, false, true, clientsSqsLock);
 
             for (Message message: messages) {
                 jsonObject = Constants.validateMessageAndReturnObj(message, Constants.TAGS.CLIENT_2_MANAGER, false);
@@ -261,10 +258,14 @@ public class ManageClients implements Runnable {
             // If manager is in termination mode and finished handling all clients (existing prior to the termination message)
             // then this thread has finish
             if (clientsInfo==null)
-                System.out.println("BRUHHHH U TRIPPIN, clientsInfo is null");
+                System.out.println("DEBUG MANAGE-CLIENTS: clientsInfo is null");
             if (clientsInfo.isEmpty() && terminate.get()) {
                 running = false;
             }
+        }
+        System.out.println("DEBUG MANAGE-CLIENTS: Thread left safely, terminate is: " + terminate.get());
+        synchronized (waitingObject){
+            waitingObject.notifyAll();
         }
     }
 }

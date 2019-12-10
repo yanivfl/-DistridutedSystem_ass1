@@ -87,10 +87,10 @@ public class LocalApplication {
 
             String li =
                     "<li>\n" +
-                            "    <span style=\"color: "+ Constants.HTML_COLORS[(int)sentiment] +"\">** "+ review +" **</span>\n" +
+                            "    <span style=\"color: "+ Constants.HTML_COLORS[(int)sentiment] +"\"> "+ review +"</span>\n" +
                             "    "+ entityList +"\n" +
                             "    - This is "+ isSarcastic +" a sarcastic review.\n" +
-                            "  </li>";
+                    "</li><br>";
             html.append(li);
         }
 

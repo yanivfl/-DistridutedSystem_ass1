@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -29,19 +30,24 @@ public class ManageWorkers implements Runnable {
     private AtomicInteger regulerWorkersCount;
     private AtomicInteger extraWorkersCount;
     private PriorityQueue<Integer> maxWorkersPerFile;
+    private AtomicBoolean terminate;
     private Object waitingObject;
     private EC2Handler ec2;
     private S3Handler s3;
     private SQSHandler sqs;
     private ReentrantLock workersSqsLock;
 
-    public ManageWorkers(ConcurrentMap<String, ClientInfo> clientsInfo, AtomicInteger filesCount, AtomicInteger regulerWorkersCount, AtomicInteger extraWorkersCount, PriorityQueue<Integer> maxWorkersPerFile, Object waitingObject,
+
+    public ManageWorkers(ConcurrentMap<String, ClientInfo> clientsInfo, AtomicInteger filesCount,
+                         AtomicInteger regulerWorkersCount, AtomicInteger extraWorkersCount,
+                         PriorityQueue<Integer> maxWorkersPerFile, AtomicBoolean terminate, Object waitingObject,
                          EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
         this.clientsInfo = clientsInfo;
         this.filesCount = filesCount;
         this.regulerWorkersCount = regulerWorkersCount;
         this.extraWorkersCount = extraWorkersCount;
         this.maxWorkersPerFile = maxWorkersPerFile;
+        this.terminate = terminate;
         this.waitingObject = waitingObject;
         this.ec2 = ec2;
         this.s3 = s3;
@@ -57,8 +63,9 @@ public class ManageWorkers implements Runnable {
         // Get the (Worker -> Manager) ( Manager -> Clients) SQS queues URLs
         String W2M_QueueURL = sqs.getURL(Constants.WORKERS_TO_MANAGER_QUEUE);
         String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
+        boolean running = true;
 
-        while (true){
+        while (running && !Thread.interrupted()){
             List<Message> workerMessages = new LinkedList<>();
             try{
                 workerMessages = sqs.receiveMessages(W2M_QueueURL,false, true);
@@ -101,6 +108,7 @@ public class ManageWorkers implements Runnable {
                         System.out.println("reguler workers: " +regulerWorkersCount.get());
                         System.out.println("extra workers: " +extraWorkersCount.get());
                         System.out.println("pq: " + maxWorkersPerFile.toString());
+                        System.out.println("terminate: " + terminate.get());
                     }
 
 
@@ -143,7 +151,13 @@ public class ManageWorkers implements Runnable {
                     }
                 }
             }
-
+            if (clientsInfo.isEmpty() && terminate.get()) {
+                running = false;
+            }
+        }
+        System.out.println("DEBUG MANAGE-WORKERS: Thread left safely, terminate is: " + terminate.get());
+        synchronized (waitingObject){
+            waitingObject.notifyAll();
         }
 
     }

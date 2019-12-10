@@ -22,6 +22,7 @@ public class Manager {
     private static SQSHandler sqs;
 
     private static final int MAX_THREADS_PER_GROUP = 10;
+    private static final int INITIAL_THREADS = 3;
 
     private static ConcurrentMap<String, ClientInfo> clientsInfo;
     private static AtomicInteger filesCount;
@@ -74,8 +75,8 @@ public class Manager {
         Thread.sleep(500);
 
         // start the first threads (2 for workers and 2 for clients)
-        for (int i = 0; i < 2; i++) {
-            workersThread = new Thread(new ManageWorkers(clientsInfo, filesCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerFile, waitingObject, ec2, s3, sqs));
+        for (int i = 0; i < INITIAL_THREADS ; i++) {
+            workersThread = new Thread(new ManageWorkers(clientsInfo, filesCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerFile,terminate, waitingObject, ec2, s3, sqs));
             clientsThread = new Thread(new ManageClients(clientsInfo, filesCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerFile, terminate, waitingObject, ec2, s3, sqs));
 
             workersThreads.add(workersThread);
@@ -93,6 +94,12 @@ public class Manager {
 
         while (!terminate.get()) {
 
+            if(Constants.DEBUG_MODE){
+                System.out.println("DEBUG MANAGER: number of manage-clients threads: " + clientsThreadCount);
+                System.out.println("DEBUG MANAGER: number of manage-workers threads: " + workersThreadCount);
+                System.out.println("DEBUG MANAGER: number of filesCount threads: " + filesCount.get());
+            }
+
             synchronized (waitingObject) {
 
                 // wakes up when:
@@ -101,35 +108,42 @@ public class Manager {
                 // 3. client is done - in ManageWorkers
                 // 4. worker is done  - in ManageWorkers
                 waitingObject.wait();
+                if(terminate.get()){
+                    break;
+                }
 
-                // clientsCount can increase only on waitingObject synchronization
-                if (clientsThreadCount < filesCount.get() && clientsThreadCount < MAX_THREADS_PER_GROUP) {
+                // filesCount can increase only on waitingObject synchronization
+                while (clientsThreadCount < (filesCount.get() + INITIAL_THREADS)  && clientsThreadCount < MAX_THREADS_PER_GROUP) {
                     clientsThread = new Thread(new ManageClients(clientsInfo, filesCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerFile, terminate, waitingObject, ec2, s3, sqs));
                     clientsThreads.add(clientsThread);
                     clientsThreadCount++;
                     clientsThread.setName("Manage-clients-Thread");
+                    System.out.println("DEBUG MANAGER: Creating Manage-clients thread. count is: " +clientsThreadCount);
                     clientsThread.start();
                 }
 
                 // workersCount can increase only on waitingObject synchronization
-                if (workersThreadCount < regulerWorkersCount.get() && workersThreadCount < MAX_THREADS_PER_GROUP) {
-                    workersThread = new Thread(new ManageWorkers(clientsInfo, filesCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerFile, waitingObject, ec2, s3, sqs));
+                while (workersThreadCount < (regulerWorkersCount.get() + INITIAL_THREADS)  && workersThreadCount < MAX_THREADS_PER_GROUP) {
+                    workersThread = new Thread(new ManageWorkers(clientsInfo, filesCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerFile, terminate, waitingObject, ec2, s3, sqs));
                     workersThreads.add(workersThread);
                     workersThreadCount++;
                     workersThread.setName("Manage-Workers-Thread");
+                    System.out.println("DEBUG MANAGER: Creating Manage-workers thread. count is: " +workersThreadCount);
                     workersThread.start();
                 }
 
                 // clientsCount can decrease only on waitingObject synchronization
-                if (clientsThreadCount < filesCount.get() && clientsThreadCount > 1) {
+                while (clientsThreadCount > (filesCount.get() + INITIAL_THREADS)  && clientsThreadCount > 1) {
                     Thread toInterrupt = clientsThreads.poll();
+                    clientsThreadCount--;
                     System.out.println("DEBUG MANAGER: interrupting Manage-clients thread");
                     toInterrupt.interrupt();
                 }
 
                 // workersCount can decrease only on waitingObject synchronization
-                if (workersThreadCount < regulerWorkersCount.get() && workersThreadCount > 1) {
+                while (workersThreadCount > (regulerWorkersCount.get() + INITIAL_THREADS) && workersThreadCount > 1) {
                     Thread toInterrupt = workersThreads.poll();
+                    workersThreadCount--;
                     System.out.println("DEBUG MANAGER: interrupting Manage-workers thread");
                     toInterrupt.interrupt();
                 }
@@ -137,9 +151,11 @@ public class Manager {
         }
 
         // wait for all clients to be serves (and the workers to finish their jobs)
+        System.out.println("DEBUG MANAGER: Manager self-destruct in 5");
         for (Thread thread: clientsThreads) {
             thread.join();
         }
+        System.out.println("DEBUG MANAGER: Manager self-destruct in 4");
         for (Thread thread: workersThreads) {
             thread.join();
         }
@@ -152,6 +168,7 @@ public class Manager {
             for (Tag tag: instance.getTags()) {
                 if (tag.getValue().equals(Constants.INSTANCE_TAG.WORKER.toString())) {
                     ec2.terminateEC2Instance(instance.getInstanceId(), Constants.DEBUG_MODE);
+                    System.out.println("DEBUG MANAGER: WORKER terminated");
                 }
                 else {
                     if (tag.getValue().equals(Constants.INSTANCE_TAG.MANAGER.toString())) {
@@ -172,9 +189,12 @@ public class Manager {
         // 1. (Manager -> Workers)
         // 2. (Workers -> Manager)
         // 3. (Manager -> Clients)
-        while (!sqs.receiveMessages(M2W_QueueURL, true, true).isEmpty());
-        while (!sqs.receiveMessages(W2M_QueueURL, true, true).isEmpty());
-        while (!sqs.receiveMessages(M2C_QueueURL, true, true).isEmpty());
+        System.out.println("DEBUG MANAGER: Manager self-destruct in 3");
+        while (!sqs.receiveMessages(M2W_QueueURL, false, true).isEmpty());
+        System.out.println("DEBUG MANAGER: Manager self-destruct in 2");
+        while (!sqs.receiveMessages(W2M_QueueURL, false, true).isEmpty());
+        System.out.println("DEBUG MANAGER: Manager self-destruct in 1");
+        while (!sqs.receiveMessages(M2C_QueueURL, false, true).isEmpty());
 
         // delete all queues
         sqs.deleteQueue(M2C_QueueURL);
@@ -182,20 +202,17 @@ public class Manager {
         sqs.deleteQueue(W2M_QueueURL);
         sqs.deleteQueue(M2W_QueueURL);
 
+
+        System.out.println("DEBUG MANAGER: Kaboom");
+
         // terminate - after this the program must end!
-        ec2.terminateEC2Instance(managerInstance.getInstanceId(), Constants.DEBUG_MODE);
+        if (!Constants.DEBUG_MODE) {
+            ec2.terminateEC2Instance(managerInstance.getInstanceId(), Constants.DEBUG_MODE);
+        }
 
+        System.out.println("DEBUG MANAGER: Manager Terminated. (doesn't have to reach this line");
 
-
-        // TODO: deal with adding workers and closing them
-
-        // TODO: add support in manageClients and managerWorkers to interrupt
-
-        // TODO: wake up when need to close/add clients or workers
-
-        // TODO: deal with a duplicated response from the workers on the same job
-
-        // TODO: when sending a done message to a client, remove it from the client info map
+         // TODO: add support in manageClients and managerWorkers to interrupt
 
         // TODO: order the short and long polling and visibillity timeout
 

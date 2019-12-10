@@ -64,7 +64,7 @@ public class ClientInfo {
         System.out.println("in new message");
 //        try{
             if(! new File(localFileName).isFile()){
-                System.out.println("File doesn't exit, return true");
+                System.out.println("File doesn't exist, return true");
                 return true;
             }
 
