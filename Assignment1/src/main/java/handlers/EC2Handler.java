@@ -161,7 +161,7 @@ public class EC2Handler {
 
             // launch instances
             RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, machineCount, machineCount)
-                    .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn(workersArn))
+                    .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn(workersArn.replaceFirst("role", "instance-profile")))
                     .withUserData(userData)
                     .withInstanceType(InstanceType.T2Micro.toString())
                     .withKeyName(Constants.KEY_PAIR);
