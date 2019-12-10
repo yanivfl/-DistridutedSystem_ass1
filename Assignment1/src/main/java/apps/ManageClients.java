@@ -179,6 +179,9 @@ public class ManageClients implements Runnable {
 
             filesCount.incrementAndGet();
             clientInfo.incInputFilesRecieved();
+            synchronized (waitingObject){
+                waitingObject.notifyAll();
+            }
 
         } catch (ParseException e) {
             e.printStackTrace();

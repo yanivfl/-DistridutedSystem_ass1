@@ -119,6 +119,9 @@ public class ManageWorkers implements Runnable {
                        clientInfo.deleteLocalFile(inBucket, inKey);
                        filesCount.decrementAndGet();
                        removeWorkersIfNeeded(clientInfo, inKey);
+                       synchronized (waitingObject){
+                           waitingObject.notifyAll();
+                       }
 
                       // check if there are no more files for this client
                       int outputFilesLeft = clientInfo.decOutputFilesLeft();
@@ -127,6 +130,9 @@ public class ManageWorkers implements Runnable {
                           running = sqs.safelySendMessage(M2C_QueueURL,new Manager2Client(true, inBucket)
                                   .stringifyUsingJSON());
                           clientsInfo.remove(inBucket);
+                          synchronized (waitingObject){
+                              waitingObject.notifyAll();
+                          }
                       }
                    }
                 }
