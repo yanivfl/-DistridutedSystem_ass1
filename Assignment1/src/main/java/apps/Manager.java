@@ -66,7 +66,7 @@ public class Manager {
         initialConfigurations(Constants.DEBUG_MODE);
 
         //launch first worker! TODO if works this is not needed
-        ec2.launchWorkers_EC2Instances(1,ec2.getRoleARN(Constants.WORKERS_ROLE));
+        ec2.launchWorkers_EC2Instances(1,ec2.getRoleARN(Constants.WORKERS_ROLE), Constants.USER_DATA_PATH);
         regulerWorkersCount.incrementAndGet();
 
         Thread workersThread;

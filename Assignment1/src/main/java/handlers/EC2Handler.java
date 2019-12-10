@@ -22,6 +22,7 @@ import com.amazonaws.services.ec2.model.*;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
+import com.amazonaws.services.identitymanagement.model.GetInstanceProfileRequest;
 import com.amazonaws.services.identitymanagement.model.GetRoleRequest;
 import com.amazonaws.services.identitymanagement.model.GetRoleResult;
 import com.amazonaws.services.ec2.model.Tag;
@@ -62,10 +63,17 @@ public class EC2Handler {
      * params: filePath
      * returns: userData string in base64
      */
-    public String encodeUserDataFile(String filePath) throws IOException {
+    public String encodeUserDataFile(String filePath, boolean isManager) throws IOException {
         byte[] encoded = Files.readAllBytes(Paths.get(filePath));
         String userDataContent = new String(encoded, Charset.defaultCharset());
-        return Base64.encodeBase64String(userDataContent.getBytes());
+
+        String jarCommand;
+        if (isManager)
+            jarCommand = Constants.JAR_COMMAND_MANAGER;
+        else
+            jarCommand = Constants.JAR_COMMAND_WORKER;
+
+        return Base64.encodeBase64String(userDataContent.replace(Constants.JAR_COMMAND, jarCommand).getBytes());
     }
 
     public AWSCredentialsProvider getCredentials() {
@@ -79,7 +87,9 @@ public class EC2Handler {
                 .build();
         GetRoleRequest request = new GetRoleRequest().withRoleName(roleName);
         GetRoleResult response = client.getRole(request);
-        return response.getRole().getArn();
+        String arn = response.getRole().getArn();
+        System.out.println("Got ARN: " + arn);
+        return arn;
     }
 
     public AmazonEC2 getEc2() {
@@ -102,13 +112,14 @@ public class EC2Handler {
         }
 
         try {
-            String userData = encodeUserDataFile(userDataPath);
+            String userData = encodeUserDataFile(userDataPath, true);
 
             // launch instances
             RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, 1, 1)
-                    .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn(managerArn))
+                    .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn(managerArn.replaceFirst("role", "instance-profile")))
                     .withUserData(userData)
-                    .withInstanceType(InstanceType.T2Micro.toString());
+                    .withInstanceType(InstanceType.T2Micro.toString())
+                    .withKeyName(Constants.KEY_PAIR);
             List<Instance> instances = this.ec2.runInstances(runInstanceRequest).getReservation().getInstances();
             Instance manager = instances.get(0);
 
@@ -133,7 +144,7 @@ public class EC2Handler {
      * params: machineCount - number of machine instances to launch, managerArn - with EC2, S3, SQS permissions
      * returns: List<Instance> list of machines instances we launched
      */
-    public List<Instance> launchWorkers_EC2Instances(int machineCount, String workersArn) {
+    public List<Instance> launchWorkers_EC2Instances(int machineCount, String workersArn, String userDataPath) {
         if(Constants.DEBUG_MODE){
             for (int i = 0; i < machineCount; i++) {
                 Runnable worker = new RunnableWorker();
@@ -146,11 +157,14 @@ public class EC2Handler {
             return new LinkedList<>();
         }
         try {
+            String userData = encodeUserDataFile(userDataPath, false);
+
             // launch instances
             RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, machineCount, machineCount)
                     .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn(workersArn))
-//                    .withUserData()   // TODO
-                    .withInstanceType(InstanceType.T2Micro.toString());
+                    .withUserData(userData)
+                    .withInstanceType(InstanceType.T2Micro.toString())
+                    .withKeyName(Constants.KEY_PAIR);
             List<Instance> instances = this.ec2.runInstances(runInstanceRequest).getReservation().getInstances();
 
             // tag instances with the given tag
@@ -169,6 +183,10 @@ public class EC2Handler {
         }
         catch (AmazonServiceException ase) {
             printASEException(ase);
+            return null;
+        }
+        catch (IOException e) {
+            e.printStackTrace();
             return null;
         }
     }
@@ -354,7 +372,8 @@ public class EC2Handler {
             RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, machineCount, machineCount)
 //                    .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn())     // TODO
 //                    .withUserData()   // TODO
-                    .withInstanceType(InstanceType.T2Micro.toString());
+                    .withInstanceType(InstanceType.T2Micro.toString())
+                    .withKeyName(Constants.KEY_PAIR);
             List<Instance> instances = this.ec2.runInstances(runInstanceRequest).getReservation().getInstances();
 
             // tag instances with the given tag

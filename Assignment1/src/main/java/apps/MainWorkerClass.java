@@ -10,6 +10,8 @@ import java.util.List;
 
 public class MainWorkerClass {
 
+    // TODO: fix user data for the worker!! (according to the assignment running description
+
     public static void main(String[] args) throws Exception {
         SQSHandler sqs = new SQSHandler(Constants.DEBUG_MODE);
         SentimentAnalysisHandler sa = new SentimentAnalysisHandler();
