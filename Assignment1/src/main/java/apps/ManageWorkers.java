@@ -9,10 +9,12 @@ import messages.Manager2Client;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
     After the manger receives response messages from the workers on all the files on an input file, then it:
@@ -31,6 +33,7 @@ public class ManageWorkers implements Runnable {
     private EC2Handler ec2;
     private S3Handler s3;
     private SQSHandler sqs;
+    private ReentrantLock workersSqsLock;
 
     public ManageWorkers(ConcurrentMap<String, ClientInfo> clientsInfo, AtomicInteger filesCount, AtomicInteger regulerWorkersCount, AtomicInteger extraWorkersCount, PriorityQueue<Integer> maxWorkersPerFile, Object waitingObject,
                          EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
@@ -43,6 +46,7 @@ public class ManageWorkers implements Runnable {
         this.ec2 = ec2;
         this.s3 = s3;
         this.sqs = sqs;
+        this.workersSqsLock = new ReentrantLock();
     }
 
     @Override
@@ -55,21 +59,39 @@ public class ManageWorkers implements Runnable {
         String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
 
         while (true){
-            List<Message> workerMessages = sqs.receiveMessages(W2M_QueueURL, true, true);
+            List<Message> workerMessages = new LinkedList<>();
+            try{
+                workerMessages = sqs.receiveMessages(W2M_QueueURL,false, true);
+            }catch (Exception e) {
+                if (Thread.interrupted()) {
+                    System.out.println("Thread interrupted, killing it softly");
+                    break;
+                } else {
+                    e.printStackTrace();
+                }
+            }
+
             System.out.println("Manager received " + workerMessages.size() + " Messages from W2M Queue");
 
             for (Message workerMsg : workerMessages) {
 
                 // parse json
                 JSONObject msgObj= Constants.validateMessageAndReturnObj(workerMsg , Constants.TAGS.WORKER_2_MANAGER, true);
-                if (msgObj == null)
+                if (msgObj == null){
+                    System.out.println("DEBUG Manage WORKERs: couldn't parse this message!!!");
                     continue;
+                }
+
                 String inBucket = (String) msgObj.get(Constants.IN_BUCKET);
                 String inKey = (String) msgObj.get(Constants.IN_KEY);
 
                 ClientInfo clientInfo = clientsInfo.get(inBucket);
-                if(clientInfo == null)
+                if(clientInfo == null){
+                    if (Constants.DEBUG_MODE){
+                        System.out.println("DEBUG Manage WORKERs: clientInfo is null!!!");
+                    }
                     continue;
+                }
 
                 boolean isUpdated = clientInfo.updateLocalOutputFile(inBucket,inKey, msgObj.toJSONString());
                 if (isUpdated) {
@@ -106,9 +128,22 @@ public class ManageWorkers implements Runnable {
                 }
             }
 
-            //delete received messages
-            if(!workerMessages.isEmpty())
-                sqs.deleteMessages(workerMessages, W2M_QueueURL);
+            // delete received messages (after handling them)
+            if (!workerMessages.isEmpty()){
+                try {
+                    sqs.deleteMessages(workerMessages, W2M_QueueURL);
+                }
+                catch (Exception e) {
+                    if (Thread.interrupted()) {
+                        sqs.deleteMessages(workerMessages, W2M_QueueURL);
+                        break;
+                    }
+                    else{
+                        e.printStackTrace();
+                    }
+                }
+            }
+
         }
 
     }

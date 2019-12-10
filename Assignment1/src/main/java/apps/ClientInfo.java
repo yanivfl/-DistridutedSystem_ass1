@@ -62,26 +62,26 @@ public class ClientInfo {
 
     private boolean isNewMessage(String localFileName, String msg) {
         System.out.println("in new message");
-        try{
+//        try{
             if(! new File(localFileName).isFile()){
                 System.out.println("File doesn't exit, return true");
                 return true;
             }
 
-            BufferedReader outputfileReader = new BufferedReader(new FileReader(localFileName));;
-            while (outputfileReader.ready()) {
-                String line = outputfileReader.readLine();
-                if (line.equals(msg)){
-                    System.out.println("msg already exists in file");
-                    return false;
-                }
-                if(line==null) break;
-            }
+//            BufferedReader outputfileReader = new BufferedReader(new FileReader(localFileName));;
+//            while (outputfileReader.ready()) {
+//                String line = outputfileReader.readLine();
+//                if (line.equals(msg)){
+//                    System.out.println("msg already exists in file");
+//                    return false;
+//                }
+//                if(line==null) break;
+//            }
             return true;
-        } catch (IOException e ){
-            System.out.println("exception is: "+ e);
-            return false;
-        }
+//        } catch (IOException e ){
+//            System.out.println("exception is: "+ e);
+//            return false;
+//        }
 
     }
 

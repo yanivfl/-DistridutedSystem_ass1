@@ -12,11 +12,13 @@ import org.json.simple.parser.ParseException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Manage the different messages that comes from clients
@@ -36,6 +38,7 @@ public class ManageClients implements Runnable {
     private EC2Handler ec2;
     private S3Handler s3;
     private SQSHandler sqs;
+    private ReentrantLock clientsSqsLock;
 
     public ManageClients(ConcurrentMap<String, ClientInfo> clientInfo, AtomicInteger filesCount,
                          AtomicInteger workersCount, AtomicInteger extraWorkersCount, PriorityQueue<Integer> maxWorkersPerFile,
@@ -51,6 +54,7 @@ public class ManageClients implements Runnable {
         this.ec2 = ec2;
         this.s3 = s3;
         this.sqs = sqs;
+        this.clientsSqsLock = new ReentrantLock();
     }
 
     private long countReviewsPerFile(BufferedReader outputReader) throws IOException, ParseException {
@@ -201,7 +205,23 @@ public class ManageClients implements Runnable {
         boolean running = true;
         while (running) {
             System.out.println("Checking queue for messages from clients");
-            List<Message> messages = sqs.receiveMessages(C2M_QueueURL, false, true); //TODO why false?
+
+            List<Message> messages = new LinkedList<>();
+            try {
+                messages = sqs.receiveMessages(C2M_QueueURL, false, true);
+            }catch (Exception e) {
+                if (Thread.interrupted()) {
+                    System.out.println("Thread interrupted, killing it softly");
+                    break;
+                } else {
+                    e.printStackTrace();
+                }
+            }
+
+
+
+//            List<Message> messages = sqs.safelyRecieveMessages(C2M_QueueURL, false, true, clientsSqsLock);
+
             for (Message message: messages) {
                 jsonObject = Constants.validateMessageAndReturnObj(message, Constants.TAGS.CLIENT_2_MANAGER, false);
 
@@ -211,16 +231,32 @@ public class ManageClients implements Runnable {
                     } else {
                         if(Constants.validateMessageAndReturnObj(message, Constants.TAGS.CLIENT_2_MANAGER_terminate, true) !=null)
                             terminateMessage();
+                        else{
+                            System.out.println("DEBUG Manage CLIENTS: couldn't parse this message!!!");
+                            continue;
+                        }
                     }
                 } catch (Exception e) {
                     System.out.println("MANAGE_CLIENTS: Got an unexpected message or can't parse message. Got exception: " + e);
                     System.out.println("Ignored the message");
                 }
-
             }
             // delete received messages (after handling them)
-            if (!messages.isEmpty())
-                sqs.deleteMessages(messages, C2M_QueueURL);
+            if (!messages.isEmpty()){
+                try {
+                    sqs.deleteMessages(messages, C2M_QueueURL);
+                }
+                catch (Exception e) {
+                    if (Thread.interrupted()) {
+                        sqs.deleteMessages(messages, C2M_QueueURL);
+                        running = false;
+                    }
+                    else{
+                        e.printStackTrace();
+                    }
+                }
+            }
+
 
             // If manager is in termination mode and finished handling all clients (existing prior to the termination message)
             // then this thread has finish

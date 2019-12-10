@@ -1,7 +1,9 @@
 package handlers;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.locks.ReentrantLock;
 
 import apps.Constants;
 import com.amazonaws.AmazonClientException;
@@ -104,7 +106,64 @@ public class SQSHandler {
         return this.sqs.receiveMessage(receiveMessageRequest).getMessages();
     }
 
-    public void deleteMessages(List<Message> messages, String myQueueUrl) {
+    public List<Message> safelyRecieveMessages(String myQueueUrl, boolean shortPolling,
+                                               boolean visibility_timeout, ReentrantLock sqsLock) {
+        if(sqsLock.isHeldByCurrentThread()){
+            System.out.println("Entering deleteMessages with lock");
+            sqsLock.unlock();
+        }
+        List<Message> output = new LinkedList<>();
+        sqsLock.lock();
+        try {
+            ReceiveMessageRequest receiveMessageRequest;
+
+            if (shortPolling) {
+                if (visibility_timeout)
+                    receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl)
+                            .withVisibilityTimeout(20);
+                else
+                    receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl);
+            } else {
+                if (visibility_timeout)
+                    receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl)
+                            .withWaitTimeSeconds(20)
+                            .withVisibilityTimeout(20);
+                else receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl)
+                        .withWaitTimeSeconds(20);
+            }
+
+            output= this.sqs.receiveMessage(receiveMessageRequest).getMessages();
+        }catch(Exception e) {
+            e.printStackTrace();
+            System.out.println("Thread will continue to do his work...");
+        }finally {
+            sqsLock.unlock();
+            return output;
+        }
+    }
+
+
+    public void saflyDeleteMessages(List<Message> messages, String myQueueUrl, ReentrantLock sqsLock) {
+        if(sqsLock.isHeldByCurrentThread()){
+            System.out.println("Entering deleteMessages with lock");
+            sqsLock.unlock();
+        }
+        sqsLock.lock();
+        try
+        {
+            for (Message msg : messages) {
+                sqs.deleteMessage(myQueueUrl, msg.getReceiptHandle());
+                System.out.println("Deleted message from queue (URL): " + myQueueUrl);
+            }
+        }catch(Exception e) {
+            e.printStackTrace();
+            System.out.println("Thread will continue to do his work...");
+        }finally {
+            sqsLock.unlock();
+        }
+    }
+
+    public void deleteMessages(List<Message> messages, String myQueueUrl){
         for (Message msg : messages) {
             sqs.deleteMessage(myQueueUrl, msg.getReceiptHandle());
             System.out.println("Deleted message from queue (URL): " + myQueueUrl);

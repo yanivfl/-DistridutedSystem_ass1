@@ -28,7 +28,7 @@ public class FullTest {
     public static void main(String[] args) {
 //        String[] localArgs = {"/home/yaniv/workSpace/dsps/reviews/test_json", "output1.html", "10" };
         String[] localArgs = {"/home/yaniv/workSpace/dsps/reviews/0689835604",
-                "/home/yaniv/workSpace/dsps/reviews/B000EVOSE4",
+                "/home/yaniv/workSpace/dsps/reviews/B001DZTJRQ",
                 "output1.html",
                 "output2.html",
                 "100" };

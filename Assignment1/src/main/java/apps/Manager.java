@@ -123,12 +123,14 @@ public class Manager {
                 // clientsCount can decrease only on waitingObject synchronization
                 if (clientsThreadCount < filesCount.get() && clientsThreadCount > 1) {
                     Thread toInterrupt = clientsThreads.poll();
+                    System.out.println("DEBUG MANAGER: interrupting Manage-clients thread");
                     toInterrupt.interrupt();
                 }
 
                 // workersCount can decrease only on waitingObject synchronization
                 if (workersThreadCount < regulerWorkersCount.get() && workersThreadCount > 1) {
-                    Thread toInterrupt = clientsThreads.poll();
+                    Thread toInterrupt = workersThreads.poll();
+                    System.out.println("DEBUG MANAGER: interrupting Manage-workers thread");
                     toInterrupt.interrupt();
                 }
             }

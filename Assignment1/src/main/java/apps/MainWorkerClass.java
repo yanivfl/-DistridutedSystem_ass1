@@ -23,12 +23,14 @@ public class MainWorkerClass {
 
         while(true){
             //receive reviews from Manager
-            List<Message> managerMessages = sqs.receiveMessages(M2W_QueueURL, true, true);
+            List<Message> managerMessages = sqs.receiveMessages(M2W_QueueURL, false, true);
             System.out.println("worker received " + managerMessages.size() + " Messages");
             for (Message managerMsg: managerMessages) {
                 JSONObject msgObj = Constants.validateMessageAndReturnObj(managerMsg, Constants.TAGS.MANAGER_2_WORKER, true);
-                if(msgObj==null)
+                if(msgObj==null){
+                    System.out.println("DEBUG WORKER: couldn't parse this message!!!");
                     continue;
+                }
 
                 review = (String) msgObj.get(Constants.REVIEW);
                 sentiment = sa.findSentiment(review);
@@ -43,11 +45,9 @@ public class MainWorkerClass {
                                  getIsSarcastic(sentiment, ((Long) msgObj.get(Constants.RATING)).intValue()))
                                 .stringifyUsingJSON());
             }
-
             //delete received messages
             if(!managerMessages.isEmpty())
                 sqs.deleteMessages(managerMessages, M2W_QueueURL);
-
         }
 
     }
