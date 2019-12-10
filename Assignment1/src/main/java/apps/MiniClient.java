@@ -1,3 +1,5 @@
+package apps;
+
 import apps.Constants;
 import com.amazonaws.services.sqs.model.Message;
 import handlers.EC2Handler;
@@ -23,7 +25,8 @@ public class MiniClient {
         String M2C_queue = sqs.createSQSQueue(Constants.MANAGER_TO_CLIENTS_QUEUE, false);
 
         System.out.println("launch manager");
-        ec2.launchManager_EC2Instance(ec2.getRoleARN(Constants.MANAGER_ROLE), Constants.USER_DATA_PATH);
+        String roleArn = ec2.getRoleARN(Constants.MANAGER_ROLE);
+        ec2.launchManager_EC2Instance(roleArn, Constants.USER_DATA_PATH);
 
 //        System.out.println("get done message from the manager");
 //        List<Message> messages;

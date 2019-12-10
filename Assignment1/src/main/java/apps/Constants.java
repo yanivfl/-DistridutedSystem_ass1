@@ -51,11 +51,16 @@ public class Constants {
     public static final String EC2policyPath = "RolePolicies/EC2policy.json";
     public static final String S3policyPath = "RolePolicies/S3policy.json";
     public static final String USER_DATA_PATH = "user_data.sh";
+    public static final String KEY_PAIR = "YuvalKeyPair";
+
+    public static final String JAR_COMMAND = "$JAR_COMMAND";
+    public static final String JAR_COMMAND_MANAGER = "aws s3 cp s3://akiaj24cwsltdpfv43lqajars/user_data.sh / --region us-east-1\n" +
+            "java -cp .:Assignment1.jar Manager";
+    public static final String JAR_COMMAND_WORKER = "java -cp .:Assignment1.jar:stanford-corenlp-3.3.0.jar:stanford-corenlp-3.3.0-models.jar:ejml-0.23.jar:jollyday-0.4.7.jar MainWorkerClass";
 
     public enum INSTANCE_TAG {
         MANAGER, WORKER
     }
-
 
     public enum TAGS {
         CLIENT_2_MANAGER, CLIENT_2_MANAGER_terminate, MANAGER_2_CLIENT,

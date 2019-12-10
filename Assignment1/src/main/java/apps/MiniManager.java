@@ -1,3 +1,5 @@
+package apps;
+
 import apps.Constants;
 import com.amazonaws.services.sqs.model.Message;
 import handlers.EC2Handler;
@@ -17,7 +19,7 @@ public class MiniManager {
         SQSHandler sqs = new SQSHandler(false);
 
         System.out.println("use ec2 - create worker");
-        ec2.launchWorkers_EC2Instances(1, ec2.getRoleARN(Constants.WORKERS_ROLE));
+        ec2.launchWorkers_EC2Instances(1, ec2.getRoleARN(Constants.WORKERS_ROLE), Constants.USER_DATA_PATH);
 
         System.out.println("use s3 - create and delete bucket");
         String testBucket = "TestBucket";
@@ -38,7 +40,7 @@ public class MiniManager {
         for (Message message: messages)
             System.out.println("Received message: " + message.getBody());
 
-        System.out.println("Send message to the MiniClient");
+        System.out.println("Send message to the apps.MiniClient");
         String M2C_queue = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
         sqs.sendMessage(M2C_queue, "I received a test message from the worker");
     }

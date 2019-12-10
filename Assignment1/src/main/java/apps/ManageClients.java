@@ -117,7 +117,7 @@ public class ManageClients implements Runnable {
             // should start more workers
             if (numWorkersToLaunch > 0) {
                 String workersArn = ec2.getRoleARN(Constants.WORKERS_ROLE);
-                ec2.launchWorkers_EC2Instances(numWorkersToLaunch, workersArn);
+                ec2.launchWorkers_EC2Instances(numWorkersToLaunch, workersArn, Constants.USER_DATA_PATH);
               }
             regulerWorkersCount.set(regulerWorkersCount.get() + addRegularWorkers);
             waitingObject.notifyAll();

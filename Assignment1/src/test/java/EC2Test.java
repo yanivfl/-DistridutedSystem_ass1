@@ -59,7 +59,8 @@ public class EC2Test {
                 throw new Exception("FAIL!!");
 
             System.out.println("launch 1 workers");
-            workersInstances = ec2.launchWorkers_EC2Instances(1, ec2.getRoleARN(Constants.WORKERS_ROLE));
+            workersInstances = ec2.launchWorkers_EC2Instances(1, ec2.getRoleARN(Constants.WORKERS_ROLE),
+                    Constants.USER_DATA_PATH);
 
             if (!ec2.isTagExists(Constants.INSTANCE_TAG.WORKER))
                 throw new Exception("FAIL!!");
@@ -83,7 +84,7 @@ public class EC2Test {
 
     private static void testUserDataCreation(EC2Handler ec2) throws IOException {
         String filePath = "user_data.sh";
-        System.out.println(ec2.encodeUserDataFile(filePath));
+        System.out.println(ec2.encodeUserDataFile(filePath, true));
 
     }
 
