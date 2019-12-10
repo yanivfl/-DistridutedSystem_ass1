@@ -8,7 +8,8 @@
 
 
 __Instructions:__ run a client using the following shell command-
-java -jar Assignment1.jar inputFileName1… inputFileNameN outputFileName1… outputFileNameN n (terminate-optional)
+
+$> java -jar Assignment1.jar inputFileName1… inputFileNameN outputFileName1… outputFileNameN n (terminate-optional)
 
 TODO
 
