@@ -48,9 +48,13 @@ public class Constants {
     public static final String KEY_PAIR = "YuvalKeyPair";
 
     public static final String JAR_COMMAND = "$JAR_COMMAND";
+    public static final String JAR_COMMAND_MINI_MANAGER = "aws s3 cp s3://akiaj24cwsltdpfv43lqajars/user_data.sh / --region us-east-1\n" +
+            "java -cp .:Assignment1.jar apps.MiniManager";
     public static final String JAR_COMMAND_MANAGER = "aws s3 cp s3://akiaj24cwsltdpfv43lqajars/user_data.sh / --region us-east-1\n" +
-            "java -cp .:Assignment1.jar Manager";
-    public static final String JAR_COMMAND_WORKER = "java -cp .:Assignment1.jar:stanford-corenlp-3.3.0.jar:stanford-corenlp-3.3.0-models.jar:ejml-0.23.jar:jollyday-0.4.7.jar MainWorkerClass";
+            "java -cp .:Assignment1.jar apps.Manager";
+    public static final String JAR_COMMAND_WORKER = "java -cp .:Assignment1.jar:stanford-corenlp-3.3.0.jar:stanford-corenlp-3.3.0-models.jar:ejml-0.23.jar:jollyday-0.4.7.jar apps.MainWorkerClass";
+
+    public static boolean isMiniRun = false;
 
     public enum INSTANCE_TAG {
         MANAGER, WORKER

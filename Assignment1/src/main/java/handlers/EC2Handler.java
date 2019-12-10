@@ -68,8 +68,12 @@ public class EC2Handler {
         String userDataContent = new String(encoded, Charset.defaultCharset());
 
         String jarCommand;
-        if (isManager)
-            jarCommand = Constants.JAR_COMMAND_MANAGER;
+        if (isManager) {
+            if (Constants.isMiniRun)
+                jarCommand = Constants.JAR_COMMAND_MINI_MANAGER;
+            else
+                jarCommand = Constants.JAR_COMMAND_MANAGER;
+        }
         else
             jarCommand = Constants.JAR_COMMAND_WORKER;
 

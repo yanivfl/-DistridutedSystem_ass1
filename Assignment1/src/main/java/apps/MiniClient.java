@@ -16,6 +16,9 @@ public class MiniClient {
      */
 
     public static void main(String[] args) throws IOException {
+
+        Constants.isMiniRun = true;
+
         EC2Handler ec2 = new EC2Handler(true);
         S3Handler s3 = new S3Handler(true);
         SQSHandler sqs = new SQSHandler(true);
