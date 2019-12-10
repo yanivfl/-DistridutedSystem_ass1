@@ -5,11 +5,7 @@
 
 <br/><br/>
 ## Running Instructions:
-___Note:___ the folder you are running the jar from should include the following jars:
-* ejml-0.23.jar
-* stanford-corenlp-3.3.0.jar
-* stanford-corenlp-3.3.0-models.jar
-* jollyday-0.4.7.jar
+
 
 __Instructions:__ run a client using the following shell command-
 java -jar Assignment1.jar inputFileName1… inputFileNameN outputFileName1… outputFileNameN n (terminate-optional)
