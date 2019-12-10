@@ -36,6 +36,7 @@ public class Constants {
     public static final String OUT_KEY = "outKey";
     public static final String COUNTER = "counter";
     public static final String LOCK = "lock";
+    public static final String TOTAL_FILE_REVIEWS = "totalFileReviews";
 
     public static final String LOCAL = "local";
     public static final String REMOTE = "remote";

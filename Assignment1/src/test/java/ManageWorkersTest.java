@@ -14,7 +14,6 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
@@ -126,7 +125,7 @@ public class ManageWorkersTest {
                     System.out.println(managerMsg.getBody());
             }
 
-            sqs.deleteMessage(managerMessages, M2C_QueueURL);
+            sqs.deleteMessages(managerMessages, M2C_QueueURL);
 
             s3.displayFile(my_bucket, outKey);
             s3.deleteBucket(my_bucket);

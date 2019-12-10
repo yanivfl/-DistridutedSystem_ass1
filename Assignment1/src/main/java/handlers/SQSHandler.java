@@ -104,10 +104,11 @@ public class SQSHandler {
         return this.sqs.receiveMessage(receiveMessageRequest).getMessages();
     }
 
-    public void deleteMessage(List<Message> messages, String myQueueUrl) {
-        String messageRecieptHandle = messages.get(0).getReceiptHandle();
-        this.sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageRecieptHandle));
-        System.out.println("Deleted message from queue (URL): " + myQueueUrl);
+    public void deleteMessages(List<Message> messages, String myQueueUrl) {
+        for (Message msg : messages) {
+            sqs.deleteMessage(myQueueUrl, msg.getReceiptHandle());
+            System.out.println("Deleted message from queue (URL): " + myQueueUrl);
+        }
     }
 
     public List<String> listQueues() {

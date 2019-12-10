@@ -15,6 +15,7 @@ import org.json.simple.parser.ParseException;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -38,9 +39,9 @@ public class LocalApplication {
     public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) throws IOException {
 
         // start the queues
-        sqs.createSQSQueue(Constants.CLIENTS_TO_MANAGER_QUEUE, true);
+        sqs.createSQSQueue(Constants.CLIENTS_TO_MANAGER_QUEUE, false);
         sqs.createSQSQueue(Constants.MANAGER_TO_CLIENTS_QUEUE, false);
-        sqs.createSQSQueue(Constants.WORKERS_TO_MANAGER_QUEUE, false);
+        sqs.createSQSQueue(Constants.WORKERS_TO_MANAGER_QUEUE, true);
         sqs.createSQSQueue(Constants.MANAGER_TO_WORKERS_QUEUE, true);
 
 
@@ -151,6 +152,15 @@ public class LocalApplication {
             keyNamesOut[i] = s3.getAwsFileName(fileName) + "out";
         }
 
+        if(Constants.DEBUG_MODE){
+            System.out.println("DEBUG APP: terminate is: " + terminate);
+            System.out.println("DEBUG APP: n is: " + reviewsPerWorker);
+            System.out.println("DEBUG APP: keyNamesIn is: " + Arrays.toString(keyNamesIn));
+            System.out.println("DEBUG APP: keyNamesOut is: " + Arrays.toString(keyNamesOut));
+            System.out.println("DEBUG APP: htmlNames is: " + Arrays.toString(htmlNames));
+        }
+
+
         // Send a message to the (Clients -> apps.Manager) SQS queue, stating the location of the files on S3
         for (int i=0; i<num_files; i++) {
             Client2Manager messageClientToManager = new Client2Manager(myBucket, keyNamesIn[i], keyNamesOut[i], reviewsPerWorker, num_files);
@@ -176,7 +186,7 @@ public class LocalApplication {
             }
             //delete received messages (after handling them)
             if(!doneLst.isEmpty())
-                sqs.deleteMessage(doneLst, M2C_QueueURL);
+                sqs.deleteMessages(doneLst, M2C_QueueURL);
         }
 
         // Download the summary file from S3

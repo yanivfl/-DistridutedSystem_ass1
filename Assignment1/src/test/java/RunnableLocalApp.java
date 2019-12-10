@@ -2,9 +2,14 @@ import apps.LocalApplication;
 import apps.Manager;
 
 public class RunnableLocalApp implements Runnable{
+    private String[] args;
+
+    public RunnableLocalApp(String[] args) {
+        this.args = args;
+    }
+
     @Override
     public void run() {
-        String[] args = {"/home/yaniv/workSpace/dsps/reviews/test_json", "output1.html", "10" };
         try {
             LocalApplication.main(args);
 

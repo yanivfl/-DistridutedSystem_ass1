@@ -24,11 +24,11 @@ public class Manager {
     private static final int MAX_THREADS_PER_GROUP = 10;
 
     private static ConcurrentMap<String, ClientInfo> clientsInfo;
-    private static AtomicInteger clientsCount;
+    private static AtomicInteger filesCount;
     private static AtomicInteger regulerWorkersCount;
     private static AtomicBoolean terminate;
     private static AtomicInteger extraWorkersCount;
-    private static PriorityQueue<Integer> maxWorkersPerClient;
+    private static PriorityQueue<Integer> maxWorkersPerFile;
 
     private static LinkedList<Thread> clientsThreads;
     private static LinkedList<Thread> workersThreads;
@@ -47,11 +47,11 @@ public class Manager {
         s3 = new S3Handler(isClient);
         sqs = new SQSHandler(isClient);
 
-        clientsCount = new AtomicInteger(0);
+        filesCount = new AtomicInteger(0);
         regulerWorkersCount = new AtomicInteger(0);
         terminate = new AtomicBoolean(false);
         extraWorkersCount = new AtomicInteger(0);
-        maxWorkersPerClient = new PriorityQueue<>(Collections.reverseOrder());
+        maxWorkersPerFile = new PriorityQueue<>(Collections.reverseOrder());
 
         clientsThreads = new LinkedList<>();
         workersThreads = new LinkedList<>();
@@ -65,22 +65,31 @@ public class Manager {
         initialConfigurations(Constants.DEBUG_MODE);
 
         //launch first worker! TODO if works this is not needed
-//        ec2.launchWorkers_EC2Instances(1,ec2.getRoleARN(Constants.WORKERS_ROLE), Constants.DEBUG_MODE );
+        ec2.launchWorkers_EC2Instances(1,ec2.getRoleARN(Constants.WORKERS_ROLE), Constants.DEBUG_MODE );
+        regulerWorkersCount.incrementAndGet();
 
-        // start the first threads (1 for workers and 1 for clients)
-        Thread workersThread = new Thread(new ManageWorkers(clientsInfo, clientsCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerClient, waitingObject, ec2, s3, sqs));
-        Thread clientsThread = new Thread(new ManageClients(clientsInfo, clientsCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerClient, terminate, waitingObject, ec2, s3, sqs));
+        Thread workersThread;
+        Thread clientsThread;
 
-        workersThreads.add(workersThread);
-        clientsThreads.add(clientsThread);
+        Thread.sleep(500);
 
-        workersThreadCount++;
-        clientsThreadCount++;
-        workersThread.setName("Manage-Workers-Thread");
-        workersThread.start();
+        // start the first threads (2 for workers and 2 for clients)
+        for (int i = 0; i < 2; i++) {
+            workersThread = new Thread(new ManageWorkers(clientsInfo, filesCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerFile, waitingObject, ec2, s3, sqs));
+            clientsThread = new Thread(new ManageClients(clientsInfo, filesCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerFile, terminate, waitingObject, ec2, s3, sqs));
 
-        clientsThread.setName("Manage-clients-Thread");
-        clientsThread.start();
+            workersThreads.add(workersThread);
+            clientsThreads.add(clientsThread);
+
+            workersThreadCount++;
+            clientsThreadCount++;
+            workersThread.setName("Manage-Workers-Thread");
+            workersThread.start();
+
+            clientsThread.setName("Manage-clients-Thread");
+            clientsThread.start();
+        }
+
 
         while (!terminate.get()) {
 
@@ -94,8 +103,8 @@ public class Manager {
                 waitingObject.wait();
 
                 // clientsCount can increase only on waitingObject synchronization
-                if (clientsThreadCount < clientsCount.get() && clientsThreadCount < MAX_THREADS_PER_GROUP) {
-                    clientsThread = new Thread(new ManageClients(clientsInfo, clientsCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerClient, terminate, waitingObject, ec2, s3, sqs));
+                if (clientsThreadCount < filesCount.get() && clientsThreadCount < MAX_THREADS_PER_GROUP) {
+                    clientsThread = new Thread(new ManageClients(clientsInfo, filesCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerFile, terminate, waitingObject, ec2, s3, sqs));
                     clientsThreads.add(clientsThread);
                     clientsThreadCount++;
                     clientsThread.setName("Manage-clients-Thread");
@@ -104,7 +113,7 @@ public class Manager {
 
                 // workersCount can increase only on waitingObject synchronization
                 if (workersThreadCount < regulerWorkersCount.get() && workersThreadCount < MAX_THREADS_PER_GROUP) {
-                    workersThread = new Thread(new ManageWorkers(clientsInfo, clientsCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerClient, waitingObject, ec2, s3, sqs));
+                    workersThread = new Thread(new ManageWorkers(clientsInfo, filesCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerFile, waitingObject, ec2, s3, sqs));
                     workersThreads.add(workersThread);
                     workersThreadCount++;
                     workersThread.setName("Manage-Workers-Thread");
@@ -112,7 +121,7 @@ public class Manager {
                 }
 
                 // clientsCount can decrease only on waitingObject synchronization
-                if (clientsThreadCount < clientsCount.get() && clientsThreadCount > 1) {
+                if (clientsThreadCount < filesCount.get() && clientsThreadCount > 1) {
                     Thread toInterrupt = clientsThreads.poll();
                     toInterrupt.interrupt();
                 }

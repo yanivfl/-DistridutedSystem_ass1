@@ -41,16 +41,16 @@ public class AWSResourceTest {
             System.out.println("No instances");
         }
 
-        System.out.println("\nList all bucket and objects in them");
-        List<Bucket> buckets = s3.listBucketsAndObjects();
-        if (delete_buckets){
-            for ( Bucket bucket: buckets) {
-                s3.deleteBucket(bucket.getName());
-            }
-        }
-        if (s3.listBucketsAndObjects().isEmpty()) {
-            System.out.println("No buckets");
-        }
+//        System.out.println("\nList all bucket and objects in them");
+//        List<Bucket> buckets = s3.listBucketsAndObjects();
+//        if (delete_buckets){
+//            for ( Bucket bucket: buckets) {
+//                s3.deleteBucket(bucket.getName());
+//            }
+//        }
+//        if (s3.listBucketsAndObjects().isEmpty()) {
+//            System.out.println("No buckets");
+//        }
 
         System.out.println("\nList all SQS queues (URL)");
         List<String> urls = sqs.listQueues();

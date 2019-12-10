@@ -16,7 +16,7 @@ public class ClientInfo {
     private AtomicInteger outputFilesLeft;
     private AtomicInteger inputFilesRecieved;
     private int reviewsPerWorker;
-    private long totalReviews;
+
 
 
     public ClientInfo(int reviewsPerWorker, int numFiles) {
@@ -25,7 +25,6 @@ public class ClientInfo {
         this.inputFilesRecieved = new AtomicInteger(0);
         this.reviewsPerWorker = reviewsPerWorker;
         this.in2outMap = new ConcurrentHashMap<>();
-        this.totalReviews = 0;
     }
 
     public String getLocalFileName(String inBucket, String inputKey){
@@ -35,6 +34,10 @@ public class ClientInfo {
 
     public String getOutKey(String inputKey){
         return (String) in2outMap.get(inputKey).get(Constants.OUT_KEY);
+    }
+
+    public long getTotalFileReviews(String inputKey){
+        return (long) in2outMap.get(inputKey).get(Constants.TOTAL_FILE_REVIEWS);
     }
 
     public boolean deleteLocalFile(String inBucket, String inputKey){
@@ -137,6 +140,8 @@ public class ClientInfo {
     }
 
 
+
+
     public int decOutputFilesLeft() {
         return outputFilesLeft.decrementAndGet();
     }
@@ -153,18 +158,9 @@ public class ClientInfo {
         Map outputDict = new HashMap<>();
         outputDict.put(Constants.OUT_KEY, outputKey);
         outputDict.put(Constants.COUNTER, counter);
+        outputDict.put(Constants.TOTAL_FILE_REVIEWS, counter);
         outputDict.put(Constants.LOCK, new ReentrantLock());
         in2outMap.put(inputKey, outputDict);
-
-        addToReviewsCounter(counter);
-    }
-
-    public void addToReviewsCounter(long toAdd) {
-        totalReviews += toAdd;
-    }
-
-    public long getTotalReviews() {
-        return totalReviews;
     }
 
     @Override
@@ -185,7 +181,8 @@ public class ClientInfo {
 
         return "ClientInfo{" +
                 " \n    in2outMap=\n" + output +
-                " \n    outputFilesCounter=" + outputFilesLeft +
+                " \n    outputFilesLeft=" + outputFilesLeft.get() +
+                " \n    inputFilesRecieved=" + outputFilesLeft.get() +
                 ",\n    reviewsPerWorker=" + reviewsPerWorker +
                 "}\n";
     }

@@ -4,15 +4,11 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.sqs.model.Message;
 import handlers.EC2Handler;
-import handlers.S3Handler;
 import handlers.SQSHandler;
-import handlers.SentimentAnalysisHandler;
 import messages.Manager2Worker;
-import messages.Worker2Manager;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import java.io.*;
 import java.util.List;
@@ -84,7 +80,7 @@ public class WorkerTest {
 
                 //delete recieved messages
                 if(!workerMessages.isEmpty())
-                    sqs.deleteMessage(workerMessages, W2M_QueueURL);
+                    sqs.deleteMessages(workerMessages, W2M_QueueURL);
 
             }
 

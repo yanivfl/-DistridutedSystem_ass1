@@ -1,15 +1,10 @@
 package apps;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.Message;
-import handlers.EC2Handler;
-import handlers.S3Handler;
 import handlers.SQSHandler;
 import handlers.SentimentAnalysisHandler;
 import messages.Worker2Manager;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
 import java.util.List;
 
@@ -51,7 +46,7 @@ public class MainWorkerClass {
 
             //delete received messages
             if(!managerMessages.isEmpty())
-                sqs.deleteMessage(managerMessages, M2W_QueueURL);
+                sqs.deleteMessages(managerMessages, M2W_QueueURL);
 
         }
 

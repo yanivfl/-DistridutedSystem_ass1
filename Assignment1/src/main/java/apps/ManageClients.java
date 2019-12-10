@@ -26,27 +26,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ManageClients implements Runnable {
 
     private ConcurrentMap<String, ClientInfo> clientsInfo;
-    private AtomicInteger clientsCount;
+    private AtomicInteger filesCount;
     private AtomicInteger regulerWorkersCount;
     private AtomicInteger extraWorkersCount;
     private Object waitingObject;
-    private PriorityQueue<Integer> maxWorkersPerClient;
+    private PriorityQueue<Integer> maxWorkersPerFile;
     private AtomicBoolean terminate;
 
     private EC2Handler ec2;
     private S3Handler s3;
     private SQSHandler sqs;
 
-    public ManageClients(ConcurrentMap<String, ClientInfo> clientInfo, AtomicInteger clientsCount,
-                         AtomicInteger workersCount, AtomicInteger extraWorkersCount, PriorityQueue<Integer> maxWorkersPerClient,
+    public ManageClients(ConcurrentMap<String, ClientInfo> clientInfo, AtomicInteger filesCount,
+                         AtomicInteger workersCount, AtomicInteger extraWorkersCount, PriorityQueue<Integer> maxWorkersPerFile,
                          AtomicBoolean terminate, Object waitingObject,
                          EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
         this.clientsInfo = clientInfo;
-        this.clientsCount = clientsCount;
+        this.filesCount = filesCount;
         this.regulerWorkersCount = workersCount;
         this.extraWorkersCount = extraWorkersCount;
         this.waitingObject = waitingObject;
-        this.maxWorkersPerClient = maxWorkersPerClient;
+        this.maxWorkersPerFile = maxWorkersPerFile;
         this.terminate = terminate;
         this.ec2 = ec2;
         this.s3 = s3;
@@ -85,6 +85,7 @@ public class ManageClients implements Runnable {
                 // Create message to worker and add it to the queue
                 Manager2Worker M2W_message = new Manager2Worker(bucket, inKey, text, rating);
                 sqs.sendMessage(M2W_QueueURL, M2W_message.stringifyUsingJSON());
+                System.out.println("DEBUG MANAGE CLIENTS: sent to worker: " + M2W_message.stringifyUsingJSON());
             }
         }
     }
@@ -94,14 +95,14 @@ public class ManageClients implements Runnable {
      * (If there are k active workers, and the new job requires m workers, then the manager should create m-k new workers, if possible).
      * params: currAppReviewsPerWorker - the current local app's reviewsPerWorker parameter (taken from it's client info)
      */
-    private void addWorkersIfNeeded(long currAppReviewsPerWorker, long currAppNumReviews) {
+    private void addWorkersIfNeeded(long ReviwsPerWorkers, long fileReviews) {
         synchronized (waitingObject) {
-            int workersNeeded = (int) currAppNumReviews / (int) currAppReviewsPerWorker;
-            maxWorkersPerClient.add(workersNeeded);
+            int workersNeeded = (int) fileReviews / (int) ReviwsPerWorkers;
+            maxWorkersPerFile.add(workersNeeded);
             
             int extraWorkersToLaunch = 0;
             // add scalability
-            int totalExtraWorkers = clientsCount.get() / Constants.ADD_EXTRA_WORKER; //extra worker for every 3 clients
+            int totalExtraWorkers = filesCount.get() / Constants.ADD_EXTRA_WORKER; //extra worker for every 3 files
             while(extraWorkersCount.get() < totalExtraWorkers ){
                 extraWorkersCount.incrementAndGet();
                 extraWorkersToLaunch++;
@@ -144,25 +145,22 @@ public class ManageClients implements Runnable {
             // (first message initialize the ClientInfo)
             ClientInfo clientInfo = new ClientInfo((int)reviewsPerWorker, numFiles);
             ClientInfo tmp = clientsInfo.putIfAbsent(bucket, clientInfo); //returns null if succesfull. if not returns existing client
+            clientInfo = tmp != null? tmp: clientInfo;
+            synchronized (waitingObject) {
+                waitingObject.notifyAll();
+            }
 
-            if (tmp == null) {
-                synchronized (waitingObject) {
-                    clientsCount.incrementAndGet();
-                    waitingObject.notifyAll();
-                }
-            }
-            else {
-                clientInfo = tmp;
-            }
 
             // Downloads the input file from S3.
             BufferedReader outputReader = s3.downloadFile(bucket, inKey);
 
             // count how many review there are in this file and update ClientInfo for this local app
             long reviewsCounter = countReviewsPerFile(outputReader);
-
             // update client info
             clientInfo.putOutputKey(inKey, outKey, reviewsCounter);
+
+            //add workers before sending messages
+            addWorkersIfNeeded(reviewsPerWorker, reviewsCounter);
 
             // Downloads the input file (again) from S3.
             outputReader = s3.downloadFile(bucket, inKey);
@@ -173,11 +171,9 @@ public class ManageClients implements Runnable {
             // For each line of the file, go through the reviews array and for each review create a message to the workers and add it to the queue
             sendMessagesToWorkers(outputReader, M2W_QueueURL, bucket, inKey);
 
-            // Checks the SQS message count and starts Worker processes (nodes) accordingly.
-            clientInfo.addToReviewsCounter(reviewsCounter);
-            if (clientInfo.incInputFilesRecieved() == numFiles){
-                addWorkersIfNeeded(reviewsPerWorker, clientInfo.getTotalReviews());
-            }
+            filesCount.incrementAndGet();
+            clientInfo.incInputFilesRecieved();
+
         } catch (ParseException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -205,7 +201,7 @@ public class ManageClients implements Runnable {
         boolean running = true;
         while (running) {
             System.out.println("Checking queue for messages from clients");
-            List<Message> messages = sqs.receiveMessages(C2M_QueueURL, false, false); //TODO why false?
+            List<Message> messages = sqs.receiveMessages(C2M_QueueURL, false, true); //TODO why false?
             for (Message message: messages) {
                 jsonObject = Constants.validateMessageAndReturnObj(message, Constants.TAGS.CLIENT_2_MANAGER, false);
 
@@ -221,10 +217,10 @@ public class ManageClients implements Runnable {
                     System.out.println("Ignored the message");
                 }
 
-                // delete received messages (after handling them)
-                if (!messages.isEmpty())
-                    sqs.deleteMessage(messages, C2M_QueueURL);
             }
+            // delete received messages (after handling them)
+            if (!messages.isEmpty())
+                sqs.deleteMessages(messages, C2M_QueueURL);
 
             // If manager is in termination mode and finished handling all clients (existing prior to the termination message)
             // then this thread has finish
