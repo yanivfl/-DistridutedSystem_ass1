@@ -16,7 +16,7 @@ public class ClientInfo {
     private AtomicInteger outputFilesLeft;
     private AtomicInteger inputFilesRecieved;
     private int reviewsPerWorker;
-    private long totalReviews;
+
 
 
     public ClientInfo(int reviewsPerWorker, int numFiles) {
@@ -25,7 +25,6 @@ public class ClientInfo {
         this.inputFilesRecieved = new AtomicInteger(0);
         this.reviewsPerWorker = reviewsPerWorker;
         this.in2outMap = new ConcurrentHashMap<>();
-        this.totalReviews = 0;
     }
 
     public String getLocalFileName(String inBucket, String inputKey){
@@ -34,7 +33,11 @@ public class ClientInfo {
     }
 
     public String getOutKey(String inputKey){
-        return (String) in2outMap.get(inputKey).get(Constants.OUTPUT_KEY);
+        return (String) in2outMap.get(inputKey).get(Constants.OUT_KEY);
+    }
+
+    public long getTotalFileReviews(String inputKey){
+        return (long) in2outMap.get(inputKey).get(Constants.TOTAL_FILE_REVIEWS);
     }
 
     public boolean deleteLocalFile(String inBucket, String inputKey){
@@ -59,25 +62,26 @@ public class ClientInfo {
 
     private boolean isNewMessage(String localFileName, String msg) {
         System.out.println("in new message");
-        try{
+//        try{
             if(! new File(localFileName).isFile()){
-                System.out.println("File doesn't exit, return true");
+                System.out.println("File doesn't exist, return true");
                 return true;
             }
 
-            BufferedReader outputfileReader = new BufferedReader(new FileReader(localFileName));;
-            while (outputfileReader.ready()) {
-                String line = outputfileReader.readLine();
-                if (line.equals(msg)){
-                    System.out.println("msg already exists in file");
-                    return false;
-                }
-            }
+//            BufferedReader outputfileReader = new BufferedReader(new FileReader(localFileName));;
+//            while (outputfileReader.ready()) {
+//                String line = outputfileReader.readLine();
+//                if (line.equals(msg)){
+//                    System.out.println("msg already exists in file");
+//                    return false;
+//                }
+//                if(line==null) break;
+//            }
             return true;
-        } catch (IOException e ){
-            System.out.println("exception is: "+ e);
-            return false;
-        }
+//        } catch (IOException e ){
+//            System.out.println("exception is: "+ e);
+//            return false;
+//        }
 
     }
 
@@ -136,6 +140,8 @@ public class ClientInfo {
     }
 
 
+
+
     public int decOutputFilesLeft() {
         return outputFilesLeft.decrementAndGet();
     }
@@ -150,20 +156,11 @@ public class ClientInfo {
 
     public void putOutputKey(String inputKey, String outputKey, long counter) {
         Map outputDict = new HashMap<>();
-        outputDict.put(Constants.OUTPUT_KEY, outputKey);
+        outputDict.put(Constants.OUT_KEY, outputKey);
         outputDict.put(Constants.COUNTER, counter);
+        outputDict.put(Constants.TOTAL_FILE_REVIEWS, counter);
         outputDict.put(Constants.LOCK, new ReentrantLock());
         in2outMap.put(inputKey, outputDict);
-
-        addToReviewsCounter(counter);
-    }
-
-    public void addToReviewsCounter(long toAdd) {
-        totalReviews += toAdd;
-    }
-
-    public long getTotalReviews() {
-        return totalReviews;
     }
 
     @Override
@@ -184,7 +181,8 @@ public class ClientInfo {
 
         return "ClientInfo{" +
                 " \n    in2outMap=\n" + output +
-                " \n    outputFilesCounter=" + outputFilesLeft +
+                " \n    outputFilesLeft=" + outputFilesLeft.get() +
+                " \n    inputFilesRecieved=" + outputFilesLeft.get() +
                 ",\n    reviewsPerWorker=" + reviewsPerWorker +
                 "}\n";
     }

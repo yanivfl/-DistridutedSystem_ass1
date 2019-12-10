@@ -15,6 +15,7 @@ import org.json.simple.parser.ParseException;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -37,15 +38,16 @@ public class LocalApplication {
      */
     public static void startManager(EC2Handler ec2, S3Handler s3, SQSHandler sqs) throws IOException {
 
+        // start the queues
+        sqs.createSQSQueue(Constants.CLIENTS_TO_MANAGER_QUEUE, false);
+        sqs.createSQSQueue(Constants.MANAGER_TO_CLIENTS_QUEUE, false);
+        sqs.createSQSQueue(Constants.WORKERS_TO_MANAGER_QUEUE, false);
+        sqs.createSQSQueue(Constants.MANAGER_TO_WORKERS_QUEUE, false);
+
+
         // start the manager
         String managerArn = ec2.getRoleARN(Constants.MANAGER_ROLE);
         ec2.launchManager_EC2Instance(managerArn, Constants.USER_DATA_PATH);
-
-        // start the queues
-        sqs.createSQSQueue(Constants.CLIENTS_TO_MANAGER_QUEUE, true);
-        sqs.createSQSQueue(Constants.MANAGER_TO_CLIENTS_QUEUE, false);
-        sqs.createSQSQueue(Constants.WORKERS_TO_MANAGER_QUEUE, false);
-        sqs.createSQSQueue(Constants.MANAGER_TO_WORKERS_QUEUE, true);
 
     }
 
@@ -53,7 +55,7 @@ public class LocalApplication {
      * Create an html file representing the results from the summery.
      * params: appID, numOutput, summery
      */
-    public static void createHtml(UUID appID, int numOutput, InputStream summery) throws IOException, ParseException {
+    public static void createHtml(UUID appID, String htmlName, InputStream summery) throws IOException, ParseException {
 
         // create the string
         StringBuilder html = new StringBuilder();
@@ -62,15 +64,17 @@ public class LocalApplication {
 
         // go through the summery output file line by line
         BufferedReader reader = new BufferedReader(new InputStreamReader(summery));
+        JSONParser parser = new JSONParser();
         while(reader.ready()) {
             String line = reader.readLine();
+            System.out.println("DEBUG APP: Line is: " + line);
+            if(line == null) break;
 
             // parse line using JSON
-            JSONParser parser = new JSONParser();
             JSONObject obj = (JSONObject) parser.parse(line);
 
             if (Constants.TAGS.valueOf((String) obj.get("tag")) != Constants.TAGS.WORKER_2_MANAGER)
-                throw new RuntimeException("Got an unexpected message - couldn't create an HTML file");
+                throw new RuntimeException("LOCAL_APP: Got an unexpected message - couldn't create an HTML file");
 
             String review = (String) obj.get(Constants.REVIEW);
             long sentiment = (Long) obj.get(Constants.SENTIMENT);
@@ -83,19 +87,21 @@ public class LocalApplication {
 
             String li =
                     "<li>\n" +
-                            "    <span style=\"color: "+ Constants.HTML_COLORS[(int)sentiment] +"\">** "+ review +" **</span>\n" +
+                            "    <span style=\"color: "+ Constants.HTML_COLORS[(int)sentiment] +"\"> "+ review +"</span>\n" +
                             "    "+ entityList +"\n" +
                             "    - This is "+ isSarcastic +" a sarcastic review.\n" +
-                            "  </li>";
+                    "</li><br>";
             html.append(li);
         }
 
         html.append("</ul>\n</body>\n</html>");
 
         // create the HTML file
-        String fileName = "Output_for_app_" + appID.toString() + "_no._" + numOutput + ".html";
-        File htmlFile = new File(fileName);
-        Files.write(Paths.get(fileName), html.toString().getBytes());
+
+        htmlName = htmlName.endsWith(".html")? htmlName : htmlName + ".html";
+
+        new File(htmlName);
+        Files.write(Paths.get(htmlName), html.toString().getBytes());
     }
 
     public static void main(String[] args) throws Exception {
@@ -118,6 +124,7 @@ public class LocalApplication {
 
         // Check if a Manager node is active on the EC2 cloud. If it is not, the application will start the manager node and create the queues
         if (!ec2.isTagExists(Constants.INSTANCE_TAG.MANAGER)) {
+            System.out.println("DEBUG APP: Starting Manager!");
             startManager(ec2, s3, sqs);
         }
 
@@ -132,6 +139,7 @@ public class LocalApplication {
         // Upload all the input files to S3
         String[] keyNamesIn = new String[num_files];
         String[] keyNamesOut = new String[num_files];
+        String[] htmlNames = new String[num_files];
 
         for (int i=0; i<num_files; i++) {
             String fileName = args[i];
@@ -139,9 +147,20 @@ public class LocalApplication {
             // upload the input file
             keyNamesIn[i] = s3.uploadFileToS3(myBucket, fileName);
 
+            htmlNames[i] = args[i+num_files];
+
             // this will be the keyName of the output file
             keyNamesOut[i] = s3.getAwsFileName(fileName) + "out";
         }
+
+        if(Constants.DEBUG_MODE){
+            Constants.printDEBUG("DEBUG APP: terminate is: " + terminate);
+            Constants.printDEBUG("DEBUG APP: n is: " + reviewsPerWorker);
+            Constants.printDEBUG("DEBUG APP: keyNamesIn is: " + Arrays.toString(keyNamesIn));
+            Constants.printDEBUG("DEBUG APP: keyNamesOut is: " + Arrays.toString(keyNamesOut));
+            Constants.printDEBUG("DEBUG APP: htmlNames is: " + Arrays.toString(htmlNames));
+        }
+
 
         // Send a message to the (Clients -> apps.Manager) SQS queue, stating the location of the files on S3
         for (int i=0; i<num_files; i++) {
@@ -168,14 +187,14 @@ public class LocalApplication {
             }
             //delete received messages (after handling them)
             if(!doneLst.isEmpty())
-                sqs.deleteMessage(doneLst, M2C_QueueURL);
+                sqs.deleteMessages(doneLst, M2C_QueueURL);
         }
 
         // Download the summary file from S3
         for (int i=0; i<num_files; i++) {
             String keyNameOut = keyNamesOut[i];
             S3Object object = s3.getS3().getObject(new GetObjectRequest(myBucket, keyNameOut));
-            createHtml(appID, i, object.getObjectContent());
+            createHtml(appID, htmlNames[i], object.getObjectContent());
         }
 
         // Send a termination message to the Manager if it was supplied as one of its input arguments.
@@ -190,6 +209,8 @@ public class LocalApplication {
             s3.deleteFile(myBucket, keyNamesOut[i]);
         }
         s3.deleteBucket(myBucket);
+
+        Constants.printDEBUG("finished getting all Output Files!!!!!!!!!!!!!!!!");
 
     }
 }

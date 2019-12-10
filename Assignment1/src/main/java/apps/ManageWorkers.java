@@ -9,10 +9,13 @@ import messages.Manager2Client;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
     After the manger receives response messages from the workers on all the files on an input file, then it:
@@ -23,22 +26,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ManageWorkers implements Runnable {
     private ConcurrentMap<String, ClientInfo> clientsInfo;
-    private AtomicInteger clientsCount;
+    private AtomicInteger filesCount;
     private AtomicInteger regulerWorkersCount;
     private AtomicInteger extraWorkersCount;
-    private PriorityQueue<Integer> maxWorkersPerClient;
+    private PriorityQueue<Integer> maxWorkersPerFile;
+    private AtomicBoolean terminate;
     private Object waitingObject;
     private EC2Handler ec2;
     private S3Handler s3;
     private SQSHandler sqs;
 
-    public ManageWorkers(ConcurrentMap<String, ClientInfo> clientsInfo, AtomicInteger clientsCount, AtomicInteger regulerWorkersCount, AtomicInteger extraWorkersCount, PriorityQueue<Integer> maxWorkersPerClient, Object waitingObject,
+
+    public ManageWorkers(ConcurrentMap<String, ClientInfo> clientsInfo, AtomicInteger filesCount,
+                         AtomicInteger regulerWorkersCount, AtomicInteger extraWorkersCount,
+                         PriorityQueue<Integer> maxWorkersPerFile, AtomicBoolean terminate, Object waitingObject,
                          EC2Handler ec2, S3Handler s3, SQSHandler sqs) {
         this.clientsInfo = clientsInfo;
-        this.clientsCount = clientsCount;
+        this.filesCount = filesCount;
         this.regulerWorkersCount = regulerWorkersCount;
         this.extraWorkersCount = extraWorkersCount;
-        this.maxWorkersPerClient = maxWorkersPerClient;
+        this.maxWorkersPerFile = maxWorkersPerFile;
+        this.terminate = terminate;
         this.waitingObject = waitingObject;
         this.ec2 = ec2;
         this.s3 = s3;
@@ -47,78 +55,114 @@ public class ManageWorkers implements Runnable {
 
     @Override
     public void run() {
+        Constants.printDEBUG("Manage-workers: started running");
         JSONParser jsonParser = new JSONParser();
 
         // Get the (Worker -> Manager) ( Manager -> Clients) SQS queues URLs
         String W2M_QueueURL = sqs.getURL(Constants.WORKERS_TO_MANAGER_QUEUE);
         String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
+        boolean running = true;
 
-        while (true){
-            List<Message> workerMessages = sqs.receiveMessages(W2M_QueueURL, true, true);
-            System.out.println("Manager received " + workerMessages.size() + " Messages from W2M Queue");
+        while (running && !Thread.interrupted()){
+            List<Message> workerMessages = new LinkedList<>();
+            try{
+                workerMessages = sqs.receiveMessages(W2M_QueueURL,false, true);
+            }catch (Exception e) {
+                if (Thread.interrupted()) {
+                    Constants.printDEBUG("Thread interrupted, killing it softly");
+                    break;
+                } else {
+                    e.printStackTrace();
+                }
+            }
+
+            Constants.printDEBUG("Manager received " + workerMessages.size() + " Messages from W2M Queue");
 
             for (Message workerMsg : workerMessages) {
 
                 // parse json
                 JSONObject msgObj= Constants.validateMessageAndReturnObj(workerMsg , Constants.TAGS.WORKER_2_MANAGER, true);
-                if (msgObj == null)
+                if (msgObj == null){
+                    Constants.printDEBUG("DEBUG Manage WORKERs: couldn't parse this message!!!");
                     continue;
+                }
+
                 String inBucket = (String) msgObj.get(Constants.IN_BUCKET);
                 String inKey = (String) msgObj.get(Constants.IN_KEY);
 
                 ClientInfo clientInfo = clientsInfo.get(inBucket);
-                if(clientInfo == null)
+                if(clientInfo == null){
+                    if (Constants.DEBUG_MODE){
+                        Constants.printDEBUG("DEBUG Manage WORKERs: clientInfo is null!!!");
+                    }
                     continue;
+                }
 
                 boolean isUpdated = clientInfo.updateLocalOutputFile(inBucket,inKey, msgObj.toJSONString());
                 if (isUpdated) {
-                    System.out.println("clientInfo: "+ clientInfo.toString());
+                    if (Constants.DEBUG_MODE){
+                        Constants.printDEBUG("clientInfo: "+ clientInfo.toString());
+                        Constants.printDEBUG("files: " + filesCount.get());
+                        Constants.printDEBUG("reguler workers: " +regulerWorkersCount.get());
+                        Constants.printDEBUG("extra workers: " +extraWorkersCount.get());
+                        Constants.printDEBUG("pq: " + maxWorkersPerFile.toString());
+                        Constants.printDEBUG("terminate: " + terminate.get());
+                    }
+
+
                     // check if there are more reviews for this file
                    long reviewsLeft = clientInfo.decOutputCounter(inKey);
                    if (reviewsLeft == 0){
                        String outKey = clientInfo.getOutKey(inKey);
+                       Constants.printDEBUG("DEBUG Manage Workers: {inBucket: " +inBucket + ", inKey: " + inKey + ", outKey: " + outKey + "}");
                        s3.uploadLocalToS3(inBucket, clientInfo.getLocalFileName(inBucket,inKey), outKey);
-                      clientInfo.deleteLocalFile(inBucket, inKey);
+                       clientInfo.deleteLocalFile(inBucket, inKey);
+                       filesCount.decrementAndGet();
+                       removeWorkersIfNeeded(clientInfo, inKey);
 
                       // check if there are no more files for this client
                       int outputFilesLeft = clientInfo.decOutputFilesLeft();
                       if (outputFilesLeft == 0){
-                          System.out.println("sending done mail to client");
-                          sqs.sendMessage(M2C_QueueURL,
-                                  new Manager2Client(true, inBucket )
-                                          .stringifyUsingJSON());
-
+                          Constants.printDEBUG("sending done mail to client");
+                          running = sqs.safelySendMessage(M2C_QueueURL,new Manager2Client(true, inBucket)
+                                  .stringifyUsingJSON());
                           clientsInfo.remove(inBucket);
-                          removeWorkersIfNeeded(clientInfo);
                       }
                    }
                 }
             }
 
-            //delete received messages
-            if(!workerMessages.isEmpty())
-                sqs.deleteMessage(workerMessages, W2M_QueueURL);
+            // delete received messages (after handling them)
+            if (!workerMessages.isEmpty()){
+                running = sqs.safelyDeleteMessages(workerMessages, W2M_QueueURL);
+            }
+            if (clientsInfo.isEmpty() && terminate.get()) {
+                running = false;
+            }
+        }
+        Constants.printDEBUG("DEBUG MANAGE-WORKERS: Thread left safely, terminate is: " + terminate.get());
+        synchronized (waitingObject){
+            waitingObject.notifyAll();
         }
 
     }
 
-    private void removeWorkersIfNeeded(ClientInfo clientInfo) {
+    private void removeWorkersIfNeeded(ClientInfo clientInfo, String inKey) {
         // tell the manager there is one less client to serve
         synchronized (waitingObject) {
 
-            clientsCount.decrementAndGet(); //feels right to decrease clients and then do the rest...
             int extraWorkersToTerminate= 0;
             // add scalability
-            int totalExtraWorkers = clientsCount.get() / Constants.ADD_EXTRA_WORKER; //extra worker for every 3 clients
+            int totalExtraWorkers = filesCount.get() / Constants.ADD_EXTRA_WORKER; //extra worker for every 3 files
             while(extraWorkersCount.get() > totalExtraWorkers ){
                 extraWorkersCount.decrementAndGet();
                 extraWorkersToTerminate++;
             }
 
             // terminate unneeded workers
-            long workersPerClient = clientInfo.getTotalReviews() / clientInfo.getReviewsPerWorker();
-            maxWorkersPerClient.remove((int)workersPerClient);
-            Integer currMax = maxWorkersPerClient.peek();
+            long workersPerClient = clientInfo.getTotalFileReviews(inKey) / clientInfo.getReviewsPerWorker();
+            maxWorkersPerFile.remove((int)workersPerClient);
+            Integer currMax = maxWorkersPerFile.peek();
             if (currMax==null){
                 waitingObject.notifyAll();
                 return;
@@ -135,7 +179,7 @@ public class ManageWorkers implements Runnable {
                                 && instance.getState().getName().equals("running")) {
                             ec2.terminateEC2Instance(instance.getInstanceId());
                             numberOfWorkersToTerminate --;
-                            //break;
+                            break;
                         }
                     }
                     if (numberOfWorkersToTerminate == 0){

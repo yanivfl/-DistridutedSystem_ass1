@@ -5,9 +5,10 @@ public class RunnableWorker implements Runnable{
     public void run() {
         String[] args = {"local"};
         try {
+            System.out.println("WORKER: started runnig");
             MainWorkerClass.main(args);
         }catch(Exception e){
-            System.out.println("Thread interrupted..."+e);
+            System.out.println("WORKER: Thread interrupted..."+e);
         }
     }
 }

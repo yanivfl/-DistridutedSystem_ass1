@@ -1,7 +1,9 @@
 package handlers;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.locks.ReentrantLock;
 
 import apps.Constants;
 import com.amazonaws.AmazonClientException;
@@ -19,6 +21,7 @@ import com.amazonaws.services.sqs.model.DeleteQueueRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
+import messages.Manager2Client;
 
 public class SQSHandler {
 
@@ -104,10 +107,45 @@ public class SQSHandler {
         return this.sqs.receiveMessage(receiveMessageRequest).getMessages();
     }
 
-    public void deleteMessage(List<Message> messages, String myQueueUrl) {
-        String messageRecieptHandle = messages.get(0).getReceiptHandle();
-        this.sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageRecieptHandle));
-        System.out.println("Deleted message from queue (URL): " + myQueueUrl);
+    public boolean safelySendMessage(String myQueueUrl, String message) {
+        try{
+            sqs.sendMessage(myQueueUrl, message);
+            return true;
+        }catch (Exception e) {
+            if (Thread.interrupted()) {
+                sqs.sendMessage(myQueueUrl, message);
+                System.out.println("Thread interrupted, killing it softly");
+                return false;
+            } else {
+                e.printStackTrace();
+            }
+        }
+        return true;
+    }
+
+
+    public boolean safelyDeleteMessages(List<Message> messages, String myQueueUrl) {
+        try {
+            deleteMessages(messages, myQueueUrl);
+            return true;
+        }
+        catch (Exception e) {
+            if (Thread.interrupted()) {
+                deleteMessages(messages, myQueueUrl);
+                return false;
+            }
+            else{
+                e.printStackTrace();
+            }
+        }
+        return true;
+    }
+
+    public void deleteMessages(List<Message> messages, String myQueueUrl){
+        for (Message msg : messages) {
+            sqs.deleteMessage(myQueueUrl, msg.getReceiptHandle());
+            System.out.println("Deleted message from queue (URL): " + myQueueUrl);
+        }
     }
 
     public List<String> listQueues() {

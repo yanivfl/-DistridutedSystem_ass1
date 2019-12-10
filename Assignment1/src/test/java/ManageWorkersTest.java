@@ -14,13 +14,13 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ManageWorkersTest {
@@ -51,13 +51,13 @@ public class ManageWorkersTest {
         AtomicInteger a = new AtomicInteger(1);
         AtomicInteger b = new AtomicInteger(1);
         AtomicInteger c = new AtomicInteger(0);
-        AtomicInteger d= new AtomicInteger(1);
+        AtomicBoolean d= new AtomicBoolean(false);
 
         PriorityQueue<Integer> pq = new PriorityQueue<>();
 
         try {
             ConcurrentMap<String, ClientInfo> clientsInfo = new ConcurrentHashMap<>();
-            Runnable manageWorkers = new ManageWorkers(clientsInfo, a,b,c,pq, waitingObject , ec2, s3, sqs);
+            Runnable manageWorkers = new ManageWorkers(clientsInfo, a,b,c,pq,d, waitingObject , ec2, s3, sqs);
             Thread manager_thread = new Thread(manageWorkers);
             Runnable worker = new RunnableWorker();
             Thread worker_thread = new Thread(worker);
@@ -126,7 +126,7 @@ public class ManageWorkersTest {
                     System.out.println(managerMsg.getBody());
             }
 
-            sqs.deleteMessage(managerMessages, M2C_QueueURL);
+            sqs.deleteMessages(managerMessages, M2C_QueueURL);
 
             s3.displayFile(my_bucket, outKey);
             s3.deleteBucket(my_bucket);

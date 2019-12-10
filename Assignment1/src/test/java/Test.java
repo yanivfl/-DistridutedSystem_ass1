@@ -166,7 +166,7 @@ public class Test {
             // TODO: where should this be?
             if (sqs != null && messages != null) {
                 System.out.println("Deleting a message.\n");
-                sqs.deleteMessage(messages, myQueueURL);
+                sqs.deleteMessages(messages, myQueueURL);
             }
 
             if (sqs != null && myQueueURL != null) {

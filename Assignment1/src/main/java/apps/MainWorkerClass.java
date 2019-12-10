@@ -1,15 +1,10 @@
 package apps;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.Message;
-import handlers.EC2Handler;
-import handlers.S3Handler;
 import handlers.SQSHandler;
 import handlers.SentimentAnalysisHandler;
 import messages.Worker2Manager;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
 import java.util.List;
 
@@ -18,17 +13,8 @@ public class MainWorkerClass {
     // TODO: fix user data for the worker!! (according to the assignment running description
 
     public static void main(String[] args) throws Exception {
-        if (args.length < 1 ||  (!args[0].equals(Constants.LOCAL) && !args[0].equals(Constants.REMOTE)) ) {
-            System.out.println("To activate this Worker, put  local or remote as first argument.");
-            return;
-        }
-
-        boolean isClient = args[0].equals(Constants.LOCAL);
-
-        EC2Handler ec2 = new EC2Handler(isClient);
-        SQSHandler sqs = new SQSHandler(isClient);
+        SQSHandler sqs = new SQSHandler(Constants.DEBUG_MODE);
         SentimentAnalysisHandler sa = new SentimentAnalysisHandler();
-        JSONParser jsonParser = new JSONParser();
         String review;
         int sentiment;
 
@@ -39,12 +25,14 @@ public class MainWorkerClass {
 
         while(true){
             //receive reviews from Manager
-            List<Message> managerMessages = sqs.receiveMessages(M2W_QueueURL, true, true);
-            System.out.println("worker received " + managerMessages.size() + " Messages");
+            List<Message> managerMessages = sqs.receiveMessages(M2W_QueueURL, false, true);
+            Constants.printDEBUG("worker received " + managerMessages.size() + " Messages");
             for (Message managerMsg: managerMessages) {
                 JSONObject msgObj = Constants.validateMessageAndReturnObj(managerMsg, Constants.TAGS.MANAGER_2_WORKER, true);
-                if(msgObj==null)
+                if(msgObj==null){
+                    Constants.printDEBUG("DEBUG WORKER: couldn't parse this message!!!");
                     continue;
+                }
 
                 review = (String) msgObj.get(Constants.REVIEW);
                 sentiment = sa.findSentiment(review);
@@ -59,12 +47,9 @@ public class MainWorkerClass {
                                  getIsSarcastic(sentiment, ((Long) msgObj.get(Constants.RATING)).intValue()))
                                 .stringifyUsingJSON());
             }
-
             //delete received messages
             if(!managerMessages.isEmpty())
-                sqs.deleteMessage(managerMessages, M2W_QueueURL);
-
-
+                sqs.deleteMessages(managerMessages, M2W_QueueURL);
         }
 
     }

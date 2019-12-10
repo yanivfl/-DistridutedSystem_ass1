@@ -30,6 +30,6 @@ public class HtmlTest {
                 summeryLine4.stringifyUsingJSON() + "\n" +
                 summeryLine5.stringifyUsingJSON();
 
-        LocalApplication.createHtml(UUID.randomUUID(), 1, new ByteArrayInputStream(input.getBytes()));
+        LocalApplication.createHtml(UUID.randomUUID(), "output", new ByteArrayInputStream(input.getBytes()));
     }
 }
