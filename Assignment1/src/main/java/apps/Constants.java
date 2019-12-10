@@ -39,17 +39,11 @@ public class Constants {
     public static final String LOCK = "lock";
     public static final String TOTAL_FILE_REVIEWS = "totalFileReviews";
 
-    public static final String LOCAL = "local";
-    public static final String REMOTE = "remote";
-
     public static final String CLIENTS_TO_MANAGER_QUEUE= "Clients2ManagerQueue";
     public static final String MANAGER_TO_CLIENTS_QUEUE= "Manager2ClientsQueue";
     public static final String WORKERS_TO_MANAGER_QUEUE = "Workers2ManagerQueue";
     public static final String MANAGER_TO_WORKERS_QUEUE = "Manager2WorkersQueue";
 
-    public static final String SQSpolicyPath = "RolePolicies/SQSpolicy.json";
-    public static final String EC2policyPath = "RolePolicies/EC2policy.json";
-    public static final String S3policyPath = "RolePolicies/S3policy.json";
     public static final String USER_DATA_PATH = "user_data.sh";
     public static final String KEY_PAIR = "YuvalKeyPair";
 
@@ -109,7 +103,7 @@ public class Constants {
 
     //********************************* DEBUG ***************************************
     //TODO change to false
-    public static boolean DEBUG_MODE = true;
+    public static boolean DEBUG_MODE = false;
     public static AtomicBoolean IS_MANAGER_ON;
     public static void printDEBUG(String toPrint){
         if (DEBUG_MODE){
