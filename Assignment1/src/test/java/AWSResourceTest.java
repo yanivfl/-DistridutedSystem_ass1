@@ -34,7 +34,7 @@ public class AWSResourceTest {
         List<Instance> instancesList = ec2.listInstances(true);
         if (delete_instances){
             for ( Instance instance: instancesList) {
-                ec2.terminateEC2Instance(instance.getInstanceId(), false);
+                ec2.terminateEC2Instance(instance.getInstanceId());
             }
         }
         if (ec2.listInstances(false).isEmpty()) {

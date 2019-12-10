@@ -47,7 +47,7 @@ public class LocalApplication {
 
         // start the manager
         String managerArn = ec2.getRoleARN(Constants.MANAGER_ROLE);
-        ec2.launchManager_EC2Instance(managerArn, Constants.USER_DATA_PATH, Constants.DEBUG_MODE);
+        ec2.launchManager_EC2Instance(managerArn, Constants.USER_DATA_PATH);
 
     }
 
@@ -123,7 +123,8 @@ public class LocalApplication {
             reviewsPerWorker =Integer.parseInt(args[args.length-1]);
 
         // Check if a Manager node is active on the EC2 cloud. If it is not, the application will start the manager node and create the queues
-        if (!ec2.isTagExists(Constants.INSTANCE_TAG.MANAGER, Constants.DEBUG_MODE)) {
+        if (!ec2.isTagExists(Constants.INSTANCE_TAG.MANAGER)) {
+            System.out.println("DEBUG APP: Starting Manager!");
             startManager(ec2, s3, sqs);
         }
 
@@ -153,11 +154,11 @@ public class LocalApplication {
         }
 
         if(Constants.DEBUG_MODE){
-            System.out.println("DEBUG APP: terminate is: " + terminate);
-            System.out.println("DEBUG APP: n is: " + reviewsPerWorker);
-            System.out.println("DEBUG APP: keyNamesIn is: " + Arrays.toString(keyNamesIn));
-            System.out.println("DEBUG APP: keyNamesOut is: " + Arrays.toString(keyNamesOut));
-            System.out.println("DEBUG APP: htmlNames is: " + Arrays.toString(htmlNames));
+            Constants.printDEBUG("DEBUG APP: terminate is: " + terminate);
+            Constants.printDEBUG("DEBUG APP: n is: " + reviewsPerWorker);
+            Constants.printDEBUG("DEBUG APP: keyNamesIn is: " + Arrays.toString(keyNamesIn));
+            Constants.printDEBUG("DEBUG APP: keyNamesOut is: " + Arrays.toString(keyNamesOut));
+            Constants.printDEBUG("DEBUG APP: htmlNames is: " + Arrays.toString(htmlNames));
         }
 
 
@@ -209,7 +210,7 @@ public class LocalApplication {
         }
         s3.deleteBucket(myBucket);
 
-        System.out.println("finished getting all Output Files!!!!!!!!!!!!!!!!");
+        Constants.printDEBUG("finished getting all Output Files!!!!!!!!!!!!!!!!");
 
     }
 }

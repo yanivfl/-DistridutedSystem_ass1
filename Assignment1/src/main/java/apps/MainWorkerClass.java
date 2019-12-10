@@ -24,11 +24,11 @@ public class MainWorkerClass {
         while(true){
             //receive reviews from Manager
             List<Message> managerMessages = sqs.receiveMessages(M2W_QueueURL, false, true);
-            System.out.println("worker received " + managerMessages.size() + " Messages");
+            Constants.printDEBUG("worker received " + managerMessages.size() + " Messages");
             for (Message managerMsg: managerMessages) {
                 JSONObject msgObj = Constants.validateMessageAndReturnObj(managerMsg, Constants.TAGS.MANAGER_2_WORKER, true);
                 if(msgObj==null){
-                    System.out.println("DEBUG WORKER: couldn't parse this message!!!");
+                    Constants.printDEBUG("DEBUG WORKER: couldn't parse this message!!!");
                     continue;
                 }
 

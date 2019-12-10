@@ -21,6 +21,7 @@ import com.amazonaws.services.sqs.model.DeleteQueueRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
+import messages.Manager2Client;
 
 public class SQSHandler {
 
@@ -106,40 +107,20 @@ public class SQSHandler {
         return this.sqs.receiveMessage(receiveMessageRequest).getMessages();
     }
 
-    public List<Message> safelyRecieveMessages(String myQueueUrl, boolean shortPolling,
-                                               boolean visibility_timeout, ReentrantLock sqsLock) {
-        if(sqsLock.isHeldByCurrentThread()){
-            System.out.println("Entering deleteMessages with lock");
-            sqsLock.unlock();
-        }
-        List<Message> output = new LinkedList<>();
-        sqsLock.lock();
-        try {
-            ReceiveMessageRequest receiveMessageRequest;
-
-            if (shortPolling) {
-                if (visibility_timeout)
-                    receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl)
-                            .withVisibilityTimeout(20);
-                else
-                    receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl);
+    public boolean safelySendMessage(String myQueueUrl, String message) {
+        try{
+            sqs.sendMessage(myQueueUrl, message);
+            return true;
+        }catch (Exception e) {
+            if (Thread.interrupted()) {
+                sqs.sendMessage(myQueueUrl, message);
+                System.out.println("Thread interrupted, killing it softly");
+                return false;
             } else {
-                if (visibility_timeout)
-                    receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl)
-                            .withWaitTimeSeconds(20)
-                            .withVisibilityTimeout(20);
-                else receiveMessageRequest = new ReceiveMessageRequest(myQueueUrl)
-                        .withWaitTimeSeconds(20);
+                e.printStackTrace();
             }
-
-            output= this.sqs.receiveMessage(receiveMessageRequest).getMessages();
-        }catch(Exception e) {
-            e.printStackTrace();
-            System.out.println("Thread will continue to do his work...");
-        }finally {
-            sqsLock.unlock();
-            return output;
         }
+        return true;
     }
 
 

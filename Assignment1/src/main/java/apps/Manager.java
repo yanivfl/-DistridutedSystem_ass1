@@ -66,7 +66,7 @@ public class Manager {
         initialConfigurations(Constants.DEBUG_MODE);
 
         //launch first worker! TODO if works this is not needed
-        ec2.launchWorkers_EC2Instances(1,ec2.getRoleARN(Constants.WORKERS_ROLE), Constants.DEBUG_MODE );
+        ec2.launchWorkers_EC2Instances(1,ec2.getRoleARN(Constants.WORKERS_ROLE));
         regulerWorkersCount.incrementAndGet();
 
         Thread workersThread;
@@ -95,9 +95,9 @@ public class Manager {
         while (!terminate.get()) {
 
             if(Constants.DEBUG_MODE){
-                System.out.println("DEBUG MANAGER: number of manage-clients threads: " + clientsThreadCount);
-                System.out.println("DEBUG MANAGER: number of manage-workers threads: " + workersThreadCount);
-                System.out.println("DEBUG MANAGER: number of filesCount threads: " + filesCount.get());
+                Constants.printDEBUG("DEBUG MANAGER: number of manage-clients threads: " + clientsThreadCount);
+                Constants.printDEBUG("DEBUG MANAGER: number of manage-workers threads: " + workersThreadCount);
+                Constants.printDEBUG("DEBUG MANAGER: number of filesCount threads: " + filesCount.get());
             }
 
             synchronized (waitingObject) {
@@ -118,7 +118,7 @@ public class Manager {
                     clientsThreads.add(clientsThread);
                     clientsThreadCount++;
                     clientsThread.setName("Manage-clients-Thread");
-                    System.out.println("DEBUG MANAGER: Creating Manage-clients thread. count is: " +clientsThreadCount);
+                    Constants.printDEBUG("DEBUG MANAGER: Creating Manage-clients thread. count is: " +clientsThreadCount);
                     clientsThread.start();
                 }
 
@@ -128,7 +128,7 @@ public class Manager {
                     workersThreads.add(workersThread);
                     workersThreadCount++;
                     workersThread.setName("Manage-Workers-Thread");
-                    System.out.println("DEBUG MANAGER: Creating Manage-workers thread. count is: " +workersThreadCount);
+                    Constants.printDEBUG("DEBUG MANAGER: Creating Manage-workers thread. count is: " +workersThreadCount);
                     workersThread.start();
                 }
 
@@ -136,7 +136,7 @@ public class Manager {
                 while (clientsThreadCount > (filesCount.get() + INITIAL_THREADS)  && clientsThreadCount > 1) {
                     Thread toInterrupt = clientsThreads.poll();
                     clientsThreadCount--;
-                    System.out.println("DEBUG MANAGER: interrupting Manage-clients thread");
+                    Constants.printDEBUG("DEBUG MANAGER: interrupting Manage-clients thread");
                     toInterrupt.interrupt();
                 }
 
@@ -144,18 +144,18 @@ public class Manager {
                 while (workersThreadCount > (regulerWorkersCount.get() + INITIAL_THREADS) && workersThreadCount > 1) {
                     Thread toInterrupt = workersThreads.poll();
                     workersThreadCount--;
-                    System.out.println("DEBUG MANAGER: interrupting Manage-workers thread");
+                    Constants.printDEBUG("DEBUG MANAGER: interrupting Manage-workers thread");
                     toInterrupt.interrupt();
                 }
             }
         }
 
         // wait for all clients to be serves (and the workers to finish their jobs)
-        System.out.println("DEBUG MANAGER: Manager self-destruct in 5");
+        Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 5");
         for (Thread thread: clientsThreads) {
             thread.join();
         }
-        System.out.println("DEBUG MANAGER: Manager self-destruct in 4");
+        Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 4");
         for (Thread thread: workersThreads) {
             thread.join();
         }
@@ -167,8 +167,8 @@ public class Manager {
 
             for (Tag tag: instance.getTags()) {
                 if (tag.getValue().equals(Constants.INSTANCE_TAG.WORKER.toString())) {
-                    ec2.terminateEC2Instance(instance.getInstanceId(), Constants.DEBUG_MODE);
-                    System.out.println("DEBUG MANAGER: WORKER terminated");
+                    ec2.terminateEC2Instance(instance.getInstanceId());
+                    Constants.printDEBUG("DEBUG MANAGER: WORKER terminated");
                 }
                 else {
                     if (tag.getValue().equals(Constants.INSTANCE_TAG.MANAGER.toString())) {
@@ -189,11 +189,11 @@ public class Manager {
         // 1. (Manager -> Workers)
         // 2. (Workers -> Manager)
         // 3. (Manager -> Clients)
-        System.out.println("DEBUG MANAGER: Manager self-destruct in 3");
+        Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 3");
         while (!sqs.receiveMessages(M2W_QueueURL, false, true).isEmpty());
-        System.out.println("DEBUG MANAGER: Manager self-destruct in 2");
+        Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 2");
         while (!sqs.receiveMessages(W2M_QueueURL, false, true).isEmpty());
-        System.out.println("DEBUG MANAGER: Manager self-destruct in 1");
+        Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 1");
         while (!sqs.receiveMessages(M2C_QueueURL, false, true).isEmpty());
 
         // delete all queues
@@ -203,14 +203,14 @@ public class Manager {
         sqs.deleteQueue(M2W_QueueURL);
 
 
-        System.out.println("DEBUG MANAGER: Kaboom");
+        Constants.printDEBUG("DEBUG MANAGER: Kaboom");
 
         // terminate - after this the program must end!
         if (!Constants.DEBUG_MODE) {
-            ec2.terminateEC2Instance(managerInstance.getInstanceId(), Constants.DEBUG_MODE);
+            ec2.terminateEC2Instance(managerInstance.getInstanceId());
         }
 
-        System.out.println("DEBUG MANAGER: Manager Terminated. (doesn't have to reach this line");
+        Constants.printDEBUG("DEBUG MANAGER: Manager Terminated. (doesn't have to reach this line");
 
          // TODO: add support in manageClients and managerWorkers to interrupt
 

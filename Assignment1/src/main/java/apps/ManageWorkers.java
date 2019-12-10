@@ -57,7 +57,7 @@ public class ManageWorkers implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("Manage-workers: started running");
+        Constants.printDEBUG("Manage-workers: started running");
         JSONParser jsonParser = new JSONParser();
 
         // Get the (Worker -> Manager) ( Manager -> Clients) SQS queues URLs
@@ -71,21 +71,21 @@ public class ManageWorkers implements Runnable {
                 workerMessages = sqs.receiveMessages(W2M_QueueURL,false, true);
             }catch (Exception e) {
                 if (Thread.interrupted()) {
-                    System.out.println("Thread interrupted, killing it softly");
+                    Constants.printDEBUG("Thread interrupted, killing it softly");
                     break;
                 } else {
                     e.printStackTrace();
                 }
             }
 
-            System.out.println("Manager received " + workerMessages.size() + " Messages from W2M Queue");
+            Constants.printDEBUG("Manager received " + workerMessages.size() + " Messages from W2M Queue");
 
             for (Message workerMsg : workerMessages) {
 
                 // parse json
                 JSONObject msgObj= Constants.validateMessageAndReturnObj(workerMsg , Constants.TAGS.WORKER_2_MANAGER, true);
                 if (msgObj == null){
-                    System.out.println("DEBUG Manage WORKERs: couldn't parse this message!!!");
+                    Constants.printDEBUG("DEBUG Manage WORKERs: couldn't parse this message!!!");
                     continue;
                 }
 
@@ -95,7 +95,7 @@ public class ManageWorkers implements Runnable {
                 ClientInfo clientInfo = clientsInfo.get(inBucket);
                 if(clientInfo == null){
                     if (Constants.DEBUG_MODE){
-                        System.out.println("DEBUG Manage WORKERs: clientInfo is null!!!");
+                        Constants.printDEBUG("DEBUG Manage WORKERs: clientInfo is null!!!");
                     }
                     continue;
                 }
@@ -103,12 +103,12 @@ public class ManageWorkers implements Runnable {
                 boolean isUpdated = clientInfo.updateLocalOutputFile(inBucket,inKey, msgObj.toJSONString());
                 if (isUpdated) {
                     if (Constants.DEBUG_MODE){
-                        System.out.println("clientInfo: "+ clientInfo.toString());
-                        System.out.println("files: " + filesCount.get());
-                        System.out.println("reguler workers: " +regulerWorkersCount.get());
-                        System.out.println("extra workers: " +extraWorkersCount.get());
-                        System.out.println("pq: " + maxWorkersPerFile.toString());
-                        System.out.println("terminate: " + terminate.get());
+                        Constants.printDEBUG("clientInfo: "+ clientInfo.toString());
+                        Constants.printDEBUG("files: " + filesCount.get());
+                        Constants.printDEBUG("reguler workers: " +regulerWorkersCount.get());
+                        Constants.printDEBUG("extra workers: " +extraWorkersCount.get());
+                        Constants.printDEBUG("pq: " + maxWorkersPerFile.toString());
+                        Constants.printDEBUG("terminate: " + terminate.get());
                     }
 
 
@@ -116,7 +116,7 @@ public class ManageWorkers implements Runnable {
                    long reviewsLeft = clientInfo.decOutputCounter(inKey);
                    if (reviewsLeft == 0){
                        String outKey = clientInfo.getOutKey(inKey);
-                       System.out.println("DEBUG Manage Workers: {inBucket: " +inBucket + ", inKey: " + inKey + ", outKey: " + outKey + "}");
+                       Constants.printDEBUG("DEBUG Manage Workers: {inBucket: " +inBucket + ", inKey: " + inKey + ", outKey: " + outKey + "}");
                        s3.uploadLocalToS3(inBucket, clientInfo.getLocalFileName(inBucket,inKey), outKey);
                        clientInfo.deleteLocalFile(inBucket, inKey);
                        filesCount.decrementAndGet();
@@ -125,11 +125,9 @@ public class ManageWorkers implements Runnable {
                       // check if there are no more files for this client
                       int outputFilesLeft = clientInfo.decOutputFilesLeft();
                       if (outputFilesLeft == 0){
-                          System.out.println("sending done mail to client");
-                          sqs.sendMessage(M2C_QueueURL,
-                                  new Manager2Client(true, inBucket )
-                                          .stringifyUsingJSON());
-
+                          Constants.printDEBUG("sending done mail to client");
+                          running = sqs.safelySendMessage(M2C_QueueURL,new Manager2Client(true, inBucket)
+                                  .stringifyUsingJSON());
                           clientsInfo.remove(inBucket);
                       }
                    }
@@ -155,7 +153,7 @@ public class ManageWorkers implements Runnable {
                 running = false;
             }
         }
-        System.out.println("DEBUG MANAGE-WORKERS: Thread left safely, terminate is: " + terminate.get());
+        Constants.printDEBUG("DEBUG MANAGE-WORKERS: Thread left safely, terminate is: " + terminate.get());
         synchronized (waitingObject){
             waitingObject.notifyAll();
         }
@@ -192,7 +190,7 @@ public class ManageWorkers implements Runnable {
                     for (Tag tag: instance.getTags()) {
                         if (tag.getValue().equals(Constants.INSTANCE_TAG.WORKER.toString())
                                 && instance.getState().getName().equals("running")) {
-                            ec2.terminateEC2Instance(instance.getInstanceId(), Constants.DEBUG_MODE);
+                            ec2.terminateEC2Instance(instance.getInstanceId());
                             numberOfWorkersToTerminate --;
                             break;
                         }

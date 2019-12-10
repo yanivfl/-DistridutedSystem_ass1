@@ -5,10 +5,10 @@ public class RunnableManager implements Runnable{
     public void run() {
         String[] args = new String[0];
         try {
-            System.out.println("Manager: started running");
+            Constants.printDEBUG("Manager: started running");
             Manager.main(args);
         }catch(Exception e){
-            System.out.println("Manager Thread interrupted..."+e);
+            Constants.printDEBUG("Manager Thread interrupted..."+e);
             e.printStackTrace();
         }
     }

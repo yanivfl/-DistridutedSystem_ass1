@@ -89,7 +89,7 @@ public class ManageClients implements Runnable {
 
                 // Create message to worker and add it to the queue
                 Manager2Worker M2W_message = new Manager2Worker(bucket, inKey, text, rating);
-                sqs.sendMessage(M2W_QueueURL, M2W_message.stringifyUsingJSON());
+                sqs.safelySendMessage(M2W_QueueURL, M2W_message.stringifyUsingJSON());
                 System.out.println("DEBUG MANAGE CLIENTS: sent to worker: " + M2W_message.stringifyUsingJSON());
             }
         }
@@ -119,7 +119,7 @@ public class ManageClients implements Runnable {
             // should start more workers
             if (numWorkersToLaunch > 0) {
                 String workersArn = ec2.getRoleARN(Constants.WORKERS_ROLE);
-                ec2.launchWorkers_EC2Instances(numWorkersToLaunch, workersArn, Constants.DEBUG_MODE);
+                ec2.launchWorkers_EC2Instances(numWorkersToLaunch, workersArn);
               }
             regulerWorkersCount.set(regulerWorkersCount.get() + addRegularWorkers);
             waitingObject.notifyAll();
@@ -143,8 +143,11 @@ public class ManageClients implements Runnable {
             int numFiles = ((Long) msgObj.get(Constants.NUM_FILES)).intValue();
 
             // If in termination mode and this is a new client, do not accept it's messages (ignore)
-            if (terminate.get() && !clientsInfo.containsKey(bucket))
+            if (terminate.get() && !clientsInfo.containsKey(bucket)){
+                System.out.println("DEBUG MANAGER: Manager declining message because it's in termination mode");
                 return;
+            }
+
 
             // Initialize this local app client in the clients info map if it wasn't initialized yet.
             // (first message initialize the ClientInfo)
@@ -191,11 +194,14 @@ public class ManageClients implements Runnable {
      */
     public void terminateMessage() {
         terminate.set(true);
+        synchronized (waitingObject) {
+            waitingObject.notifyAll();
+        }
     }
 
     @Override
     public void run() {
-        System.out.println("Manage-Clients: started running");
+        Constants.printDEBUG("Manage-Clients: started running");
 
         // Get the (Clients -> Manager) SQS queues URLs
         String C2M_QueueURL = sqs.getURL(Constants.CLIENTS_TO_MANAGER_QUEUE);
@@ -205,14 +211,14 @@ public class ManageClients implements Runnable {
         JSONObject jsonObject;
         boolean running = true;
         while (running && !Thread.interrupted()) {
-            System.out.println("Checking queue for messages from clients");
+            Constants.printDEBUG("Checking queue for messages from clients");
 
             List<Message> messages = new LinkedList<>();
             try {
                 messages = sqs.receiveMessages(C2M_QueueURL, false, true);
             }catch (Exception e) {
                 if (Thread.interrupted()) {
-                    System.out.println("Thread interrupted, killing it softly");
+                    Constants.printDEBUG("Thread interrupted, killing it softly");
                     break;
                 } else {
                     e.printStackTrace();
@@ -229,13 +235,13 @@ public class ManageClients implements Runnable {
                         if(Constants.validateMessageAndReturnObj(message, Constants.TAGS.CLIENT_2_MANAGER_terminate, true) !=null)
                             terminateMessage();
                         else{
-                            System.out.println("DEBUG Manage CLIENTS: couldn't parse this message!!!");
+                            Constants.printDEBUG("DEBUG Manage CLIENTS: couldn't parse this message!!!");
                             continue;
                         }
                     }
                 } catch (Exception e) {
-                    System.out.println("MANAGE_CLIENTS: Got an unexpected message or can't parse message. Got exception: " + e);
-                    System.out.println("Ignored the message");
+                    Constants.printDEBUG("MANAGE_CLIENTS: Got an unexpected message or can't parse message. Got exception: " + e);
+                    Constants.printDEBUG("Ignored the message");
                 }
             }
             // delete received messages (after handling them)
@@ -258,12 +264,12 @@ public class ManageClients implements Runnable {
             // If manager is in termination mode and finished handling all clients (existing prior to the termination message)
             // then this thread has finish
             if (clientsInfo==null)
-                System.out.println("DEBUG MANAGE-CLIENTS: clientsInfo is null");
+                Constants.printDEBUG("DEBUG MANAGE-CLIENTS: clientsInfo is null");
             if (clientsInfo.isEmpty() && terminate.get()) {
                 running = false;
             }
         }
-        System.out.println("DEBUG MANAGE-CLIENTS: Thread left safely, terminate is: " + terminate.get());
+        Constants.printDEBUG("DEBUG MANAGE-CLIENTS: Thread left safely, terminate is: " + terminate.get());
         synchronized (waitingObject){
             waitingObject.notifyAll();
         }

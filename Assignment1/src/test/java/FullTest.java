@@ -21,20 +21,24 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class FullTest {
 
     public static void main(String[] args) {
         String[] localArgs;
+        Constants.IS_MANAGER_ON = new AtomicBoolean(false);
         try {
             for (int i = 0; i <3 ; i++) {
-                localArgs = getARgs1(i);
+                localArgs = getARgs1(i+1);
                 Runnable client = new RunnableLocalApp(localArgs);
                 Thread clientThread = new Thread(client);
                 clientThread.setName("Local-App-Thread");
+                if (i==2)
+                    Thread.sleep(120000); //sleep for 120 seconds
                 clientThread.start();
-                System.out.println("client " + i + " started");
+                System.out.println("client " + (i+1) + " started");
             }
 
         } catch (Exception e) {

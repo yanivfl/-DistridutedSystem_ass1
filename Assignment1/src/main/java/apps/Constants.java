@@ -9,6 +9,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Constants {
 
@@ -104,6 +105,12 @@ public class Constants {
     //********************************* DEBUG ***************************************
     //TODO change to false
     public static boolean DEBUG_MODE = true;
+    public static AtomicBoolean IS_MANAGER_ON;
+    public static void printDEBUG(String toPrint){
+        if (DEBUG_MODE){
+            System.out.println(toPrint);
+        }
+    }
 
 
 

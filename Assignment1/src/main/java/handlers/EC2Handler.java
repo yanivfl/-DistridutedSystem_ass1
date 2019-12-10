@@ -91,8 +91,8 @@ public class EC2Handler {
      * params: managerArn with EC2, S3, SQS permissions
      * returns: the manager instance
      */
-    public Instance launchManager_EC2Instance(String managerArn, String userDataPath, boolean isDebug) throws IOException {
-        if(isDebug){
+    public Instance launchManager_EC2Instance(String managerArn, String userDataPath) throws IOException {
+        if(Constants.DEBUG_MODE){
             Runnable manager = new RunnableManager();
             Thread managerThread = new Thread(manager);
             managerThread.setName("Manager-Thread");
@@ -133,8 +133,8 @@ public class EC2Handler {
      * params: machineCount - number of machine instances to launch, managerArn - with EC2, S3, SQS permissions
      * returns: List<Instance> list of machines instances we launched
      */
-    public List<Instance> launchWorkers_EC2Instances(int machineCount, String workersArn, boolean isDebug) {
-        if(isDebug){
+    public List<Instance> launchWorkers_EC2Instances(int machineCount, String workersArn) {
+        if(Constants.DEBUG_MODE){
             for (int i = 0; i < machineCount; i++) {
                 Runnable worker = new RunnableWorker();
                 Thread workerThread = new Thread(worker);
@@ -178,8 +178,8 @@ public class EC2Handler {
      * @param instanecID
      * @return boolean: true  iff instance was terminated
      */
-    public boolean terminateEC2Instance(String instanecID, boolean isDebug) {
-        if (isDebug){
+    public boolean terminateEC2Instance(String instanecID) {
+        if (Constants.DEBUG_MODE){
             System.out.println("The Instance is terminated with id: "+ "DEBUG BRUHHHH");
             return true;
         }
@@ -207,9 +207,12 @@ public class EC2Handler {
      * params: ec2, tag
      * returns: True: There is an instance with the requested tag , False: otherwise
      */
-    public boolean isTagExists(Constants.INSTANCE_TAG tag, boolean isDebug) {
-        if (isDebug){
-            return false; //turn on manager
+    public boolean isTagExists(Constants.INSTANCE_TAG tag) {
+        if (Constants.DEBUG_MODE){
+            if(Constants.INSTANCE_TAG.MANAGER.toString().equals(tag.toString())){
+                return !Constants.IS_MANAGER_ON.compareAndSet(false,true);
+            }
+            return false;
         }
 
         boolean done = false;   // done = True - when finished going over all the instances.
