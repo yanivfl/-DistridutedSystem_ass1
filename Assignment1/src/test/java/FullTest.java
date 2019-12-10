@@ -30,20 +30,34 @@ public class FullTest {
         String[] localArgs;
         Constants.IS_MANAGER_ON = new AtomicBoolean(false);
         try {
-            for (int i = 0; i <3 ; i++) {
-                localArgs = getARgs1(i+1);
-                Runnable client = new RunnableLocalApp(localArgs);
-                Thread clientThread = new Thread(client);
-                clientThread.setName("Local-App-Thread");
-                if (i==2)
-                    Thread.sleep(120000); //sleep for 120 seconds
-                clientThread.start();
-                System.out.println("client " + (i+1) + " started");
-            }
-
+            //test1();
+            test2();
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static void test1() throws InterruptedException {
+        String[] localArgs;
+        for (int i = 0; i <3 ; i++) {
+            localArgs = getARgs1(i+1);
+            Runnable client = new RunnableLocalApp(localArgs);
+            Thread clientThread = new Thread(client);
+            clientThread.setName("Local-App-Thread");
+            if (i==2)
+                Thread.sleep(120000); //sleep for 120 seconds
+            clientThread.start();
+            System.out.println("client " + (i+1) + " started");
+        }
+    }
+
+    private static void test2(){
+        String[] localArgs = getARgs2();
+        Runnable client = new RunnableLocalApp(localArgs);
+        Thread clientThread = new Thread(client);
+        clientThread.setName("Local-App-Thread");
+        clientThread.start();
+        System.out.println("client started");
     }
 
 
@@ -66,8 +80,8 @@ public class FullTest {
     }
 
     private static String[] getARgs2(){
-        String[] localArgs = {"/home/yaniv/workSpace/dsps/reviews/0689835604",
-        "/home/yaniv/workSpace/dsps/reviews/B001DZTJRQ",
+        String[] localArgs = {"/home/yaniv/workSpace/dsps/reviews/B0047E0EII",
+        "/home/yaniv/workSpace/dsps/reviews/B01LYRCIPG",
         "output1.html",
         "output2.html",
         "100" };
