@@ -35,7 +35,6 @@ public class ManageWorkers implements Runnable {
     private EC2Handler ec2;
     private S3Handler s3;
     private SQSHandler sqs;
-    private ReentrantLock workersSqsLock;
 
 
     public ManageWorkers(ConcurrentMap<String, ClientInfo> clientsInfo, AtomicInteger filesCount,
@@ -52,7 +51,6 @@ public class ManageWorkers implements Runnable {
         this.ec2 = ec2;
         this.s3 = s3;
         this.sqs = sqs;
-        this.workersSqsLock = new ReentrantLock();
     }
 
     @Override
@@ -136,18 +134,7 @@ public class ManageWorkers implements Runnable {
 
             // delete received messages (after handling them)
             if (!workerMessages.isEmpty()){
-                try {
-                    sqs.deleteMessages(workerMessages, W2M_QueueURL);
-                }
-                catch (Exception e) {
-                    if (Thread.interrupted()) {
-                        sqs.deleteMessages(workerMessages, W2M_QueueURL);
-                        break;
-                    }
-                    else{
-                        e.printStackTrace();
-                    }
-                }
+                running = sqs.safelyDeleteMessages(workerMessages, W2M_QueueURL);
             }
             if (clientsInfo.isEmpty() && terminate.get()) {
                 running = false;

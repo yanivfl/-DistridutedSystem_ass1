@@ -124,24 +124,21 @@ public class SQSHandler {
     }
 
 
-    public void saflyDeleteMessages(List<Message> messages, String myQueueUrl, ReentrantLock sqsLock) {
-        if(sqsLock.isHeldByCurrentThread()){
-            System.out.println("Entering deleteMessages with lock");
-            sqsLock.unlock();
+    public boolean safelyDeleteMessages(List<Message> messages, String myQueueUrl) {
+        try {
+            deleteMessages(messages, myQueueUrl);
+            return true;
         }
-        sqsLock.lock();
-        try
-        {
-            for (Message msg : messages) {
-                sqs.deleteMessage(myQueueUrl, msg.getReceiptHandle());
-                System.out.println("Deleted message from queue (URL): " + myQueueUrl);
+        catch (Exception e) {
+            if (Thread.interrupted()) {
+                deleteMessages(messages, myQueueUrl);
+                return false;
             }
-        }catch(Exception e) {
-            e.printStackTrace();
-            System.out.println("Thread will continue to do his work...");
-        }finally {
-            sqsLock.unlock();
+            else{
+                e.printStackTrace();
+            }
         }
+        return true;
     }
 
     public void deleteMessages(List<Message> messages, String myQueueUrl){

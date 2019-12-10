@@ -38,7 +38,6 @@ public class ManageClients implements Runnable {
     private EC2Handler ec2;
     private S3Handler s3;
     private SQSHandler sqs;
-    private ReentrantLock clientsSqsLock;
 
     public ManageClients(ConcurrentMap<String, ClientInfo> clientInfo, AtomicInteger filesCount,
                          AtomicInteger workersCount, AtomicInteger extraWorkersCount, PriorityQueue<Integer> maxWorkersPerFile,
@@ -55,7 +54,6 @@ public class ManageClients implements Runnable {
         this.ec2 = ec2;
         this.s3 = s3;
         this.sqs = sqs;
-        this.clientsSqsLock = new ReentrantLock();
     }
 
     private long countReviewsPerFile(BufferedReader outputReader) throws IOException, ParseException {
@@ -246,18 +244,7 @@ public class ManageClients implements Runnable {
             }
             // delete received messages (after handling them)
             if (!messages.isEmpty()){
-                try {
-                    sqs.deleteMessages(messages, C2M_QueueURL);
-                }
-                catch (Exception e) {
-                    if (Thread.interrupted()) {
-                        sqs.deleteMessages(messages, C2M_QueueURL);
-                        running = false;
-                    }
-                    else{
-                        e.printStackTrace();
-                    }
-                }
+                running = sqs.safelyDeleteMessages(messages, C2M_QueueURL);
             }
 
 
