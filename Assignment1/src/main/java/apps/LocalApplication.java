@@ -1,5 +1,6 @@
 package apps;
 
+import com.amazonaws.services.s3.model.Bucket;
 import messages.Client2Manager;
 import messages.Client2Manager_terminate;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -110,107 +111,116 @@ public class LocalApplication {
         EC2Handler ec2 = new EC2Handler(true);
         S3Handler s3 = new S3Handler(true);
         SQSHandler sqs = new SQSHandler(true);
+        try{
+            // extract input file name, output file names and optional termination message from args
+            // example args: inputFileName1… inputFileNameN outputFileName1… outputFileNameN n terminate(optional)
+            boolean terminate = (args.length % 2 == 0);
+            int num_files = (args.length-1)/2;
+            int reviewsPerWorker;       // (n)
 
-        // extract input file name, output file names and optional termination message from args
-        // example args: inputFileName1… inputFileNameN outputFileName1… outputFileNameN n terminate(optional)
-        boolean terminate = (args.length % 2 == 0);
-        int num_files = (args.length-1)/2;
-        int reviewsPerWorker;       // (n)
+            if (terminate)
+                reviewsPerWorker = Integer.parseInt(args[args.length-2]);
+            else
+                reviewsPerWorker =Integer.parseInt(args[args.length-1]);
 
-        if (terminate)
-            reviewsPerWorker = Integer.parseInt(args[args.length-2]);
-        else
-            reviewsPerWorker =Integer.parseInt(args[args.length-1]);
+            // Check if a Manager node is active on the EC2 cloud. If it is not, the application will start the manager node and create the queues
+            if (!ec2.isTagExists(Constants.INSTANCE_TAG.MANAGER)) {
+                System.out.println("DEBUG APP: Starting Manager!");
+                startManager(ec2, s3, sqs);
+            }
 
-        // Check if a Manager node is active on the EC2 cloud. If it is not, the application will start the manager node and create the queues
-        if (!ec2.isTagExists(Constants.INSTANCE_TAG.MANAGER)) {
-            System.out.println("DEBUG APP: Starting Manager!");
-            startManager(ec2, s3, sqs);
-        }
+            // Create a bucket for this local application - the bucket name is unique for this local app
+            UUID appID = UUID.randomUUID();
+            String myBucket = s3.createBucket(appID.toString());
 
-        // Create a bucket for this local application - the bucket name is unique for this local app
-        UUID appID = UUID.randomUUID();
-        String myBucket = s3.createBucket(appID.toString());
+            // Get the (Clients -> Manager), (Manager -> Clients) SQS queues URLs
+            String C2M_QueueURL = sqs.getURL(Constants.CLIENTS_TO_MANAGER_QUEUE);
+            String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
 
-        // Get the (Clients -> Manager), (Manager -> Clients) SQS queues URLs
-        String C2M_QueueURL = sqs.getURL(Constants.CLIENTS_TO_MANAGER_QUEUE);
-        String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
+            // Upload all the input files to S3
+            String[] keyNamesIn = new String[num_files];
+            String[] keyNamesOut = new String[num_files];
+            String[] htmlNames = new String[num_files];
 
-        // Upload all the input files to S3
-        String[] keyNamesIn = new String[num_files];
-        String[] keyNamesOut = new String[num_files];
-        String[] htmlNames = new String[num_files];
+            for (int i=0; i<num_files; i++) {
+                String fileName = args[i];
 
-        for (int i=0; i<num_files; i++) {
-            String fileName = args[i];
+                // upload the input file
+                keyNamesIn[i] = s3.uploadFileToS3(myBucket, fileName);
 
-            // upload the input file
-            keyNamesIn[i] = s3.uploadFileToS3(myBucket, fileName);
+                htmlNames[i] = args[i+num_files];
 
-            htmlNames[i] = args[i+num_files];
+                // this will be the keyName of the output file
+                keyNamesOut[i] = s3.getAwsFileName(fileName) + "out";
+            }
 
-            // this will be the keyName of the output file
-            keyNamesOut[i] = s3.getAwsFileName(fileName) + "out";
-        }
-
-        if(Constants.DEBUG_MODE){
-            Constants.printDEBUG("DEBUG APP: terminate is: " + terminate);
-            Constants.printDEBUG("DEBUG APP: n is: " + reviewsPerWorker);
-            Constants.printDEBUG("DEBUG APP: keyNamesIn is: " + Arrays.toString(keyNamesIn));
-            Constants.printDEBUG("DEBUG APP: keyNamesOut is: " + Arrays.toString(keyNamesOut));
-            Constants.printDEBUG("DEBUG APP: htmlNames is: " + Arrays.toString(htmlNames));
-        }
+            if(Constants.DEBUG_MODE){
+                Constants.printDEBUG("DEBUG APP: terminate is: " + terminate);
+                Constants.printDEBUG("DEBUG APP: n is: " + reviewsPerWorker);
+                Constants.printDEBUG("DEBUG APP: keyNamesIn is: " + Arrays.toString(keyNamesIn));
+                Constants.printDEBUG("DEBUG APP: keyNamesOut is: " + Arrays.toString(keyNamesOut));
+                Constants.printDEBUG("DEBUG APP: htmlNames is: " + Arrays.toString(htmlNames));
+            }
 
 
-        // Send a message to the (Clients -> apps.Manager) SQS queue, stating the location of the files on S3
-        for (int i=0; i<num_files; i++) {
-            Client2Manager messageClientToManager = new Client2Manager(myBucket, keyNamesIn[i], keyNamesOut[i], reviewsPerWorker, num_files);
-            sqs.sendMessage(C2M_QueueURL, messageClientToManager.stringifyUsingJSON());
-        }
+            // Send a message to the (Clients -> apps.Manager) SQS queue, stating the location of the files on S3
+            for (int i=0; i<num_files; i++) {
+                Client2Manager messageClientToManager = new Client2Manager(myBucket, keyNamesIn[i], keyNamesOut[i], reviewsPerWorker, num_files);
+                sqs.sendMessage(C2M_QueueURL, messageClientToManager.stringifyUsingJSON());
+            }
 
-        // Check on the (Manager -> Clients) SQS queue for a message indicating the process is done and the response
-        // (the summary file) is available on S3.
-        boolean done = false;
-        List<Message> doneLst = new LinkedList<>();
-        while (!done) {
-            List<Message> doneMessages = sqs.receiveMessages(M2C_QueueURL, false, false);
-            for (Message msg: doneMessages) {
-                JSONObject msgObj= Constants.validateMessageAndReturnObj(msg , Constants.TAGS.MANAGER_2_CLIENT, true);
-                if (msgObj != null) {
-                    boolean isDoneJson = (boolean) msgObj.get(Constants.IS_DONE);
-                    String inBucketJson = (String) msgObj.get(Constants.IN_BUCKET);
-                    if (isDoneJson && inBucketJson.equals(myBucket)) {
-                        doneLst.add(msg);
-                        done = true;
+            // Check on the (Manager -> Clients) SQS queue for a message indicating the process is done and the response
+            // (the summary file) is available on S3.
+            boolean done = false;
+            List<Message> doneLst = new LinkedList<>();
+            while (!done) {
+                List<Message> doneMessages = sqs.receiveMessages(M2C_QueueURL, false, false);
+                for (Message msg: doneMessages) {
+                    JSONObject msgObj= Constants.validateMessageAndReturnObj(msg , Constants.TAGS.MANAGER_2_CLIENT, true);
+                    if (msgObj != null) {
+                        boolean isDoneJson = (boolean) msgObj.get(Constants.IS_DONE);
+                        String inBucketJson = (String) msgObj.get(Constants.IN_BUCKET);
+                        if (isDoneJson && inBucketJson.equals(myBucket)) {
+                            doneLst.add(msg);
+                            done = true;
+                        }
                     }
                 }
+                //delete received messages (after handling them)
+                if(!doneLst.isEmpty())
+                    sqs.deleteMessages(doneLst, M2C_QueueURL);
             }
-            //delete received messages (after handling them)
-            if(!doneLst.isEmpty())
-                sqs.deleteMessages(doneLst, M2C_QueueURL);
+
+            // Download the summary file from S3
+            for (int i=0; i<num_files; i++) {
+                String keyNameOut = keyNamesOut[i];
+                S3Object object = s3.getS3().getObject(new GetObjectRequest(myBucket, keyNameOut));
+                createHtml(appID, htmlNames[i], object.getObjectContent());
+            }
+
+            // Send a termination message to the Manager if it was supplied as one of its input arguments.
+            if (terminate) {
+                Client2Manager_terminate terminateMsg = new Client2Manager_terminate(myBucket);
+                sqs.sendMessage(C2M_QueueURL, terminateMsg.stringifyUsingJSON());
+            }
+
+            // delete all input files, output files and the bucket from S3 for this local application
+            for (int i=0; i<num_files; i++) {
+                s3.deleteFile(myBucket, keyNamesIn[i]);
+                s3.deleteFile(myBucket, keyNamesOut[i]);
+            }
+            s3.deleteBucket(myBucket);
+
+            Constants.printDEBUG("finished getting all Output Files!!!!!!!!!!!!!!!!");
+        } catch (Exception e){
+            System.out.println("Server is Down. deleting User buckets.");
+            List<Bucket> buckets = s3.listBucketsAndObjects();
+            for ( Bucket bucket: buckets) {
+                s3.deleteBucket(bucket.getName());
+            }
+            if (s3.listBucketsAndObjects().isEmpty()) {
+                System.out.println("User has No buckets");
+            }
         }
-
-        // Download the summary file from S3
-        for (int i=0; i<num_files; i++) {
-            String keyNameOut = keyNamesOut[i];
-            S3Object object = s3.getS3().getObject(new GetObjectRequest(myBucket, keyNameOut));
-            createHtml(appID, htmlNames[i], object.getObjectContent());
-        }
-
-        // Send a termination message to the Manager if it was supplied as one of its input arguments.
-        if (terminate) {
-            Client2Manager_terminate terminateMsg = new Client2Manager_terminate(myBucket);
-            sqs.sendMessage(C2M_QueueURL, terminateMsg.stringifyUsingJSON());
-        }
-
-        // delete all input files, output files and the bucket from S3 for this local application
-        for (int i=0; i<num_files; i++) {
-            s3.deleteFile(myBucket, keyNamesIn[i]);
-            s3.deleteFile(myBucket, keyNamesOut[i]);
-        }
-        s3.deleteBucket(myBucket);
-
-        Constants.printDEBUG("finished getting all Output Files!!!!!!!!!!!!!!!!");
-
     }
 }

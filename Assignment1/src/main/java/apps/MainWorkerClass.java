@@ -16,40 +16,43 @@ public class MainWorkerClass {
         String review;
         int sentiment;
 
+        try {
+            // Get the (Manager -> Worker), (Worker -> Manager) SQS queues URLs
+            String M2W_QueueURL = sqs.getURL(Constants.MANAGER_TO_WORKERS_QUEUE);
+            String W2M_QueueURL = sqs.getURL(Constants.WORKERS_TO_MANAGER_QUEUE);
 
-        // Get the (Manager -> Worker), (Worker -> Manager) SQS queues URLs
-        String M2W_QueueURL = sqs.getURL(Constants.MANAGER_TO_WORKERS_QUEUE);
-        String W2M_QueueURL = sqs.getURL(Constants.WORKERS_TO_MANAGER_QUEUE);
+            while(true){
+                //receive reviews from Manager
+                List<Message> managerMessages = sqs.receiveMessages(M2W_QueueURL, false, true);
+                Constants.printDEBUG("worker received " + managerMessages.size() + " Messages");
+                for (Message managerMsg: managerMessages) {
+                    JSONObject msgObj = Constants.validateMessageAndReturnObj(managerMsg, Constants.TAGS.MANAGER_2_WORKER, true);
+                    if(msgObj==null){
+                        Constants.printDEBUG("DEBUG WORKER: couldn't parse this message!!!");
+                        continue;
+                    }
 
-        while(true){
-            //receive reviews from Manager
-            List<Message> managerMessages = sqs.receiveMessages(M2W_QueueURL, false, true);
-            Constants.printDEBUG("worker received " + managerMessages.size() + " Messages");
-            for (Message managerMsg: managerMessages) {
-                JSONObject msgObj = Constants.validateMessageAndReturnObj(managerMsg, Constants.TAGS.MANAGER_2_WORKER, true);
-                if(msgObj==null){
-                    Constants.printDEBUG("DEBUG WORKER: couldn't parse this message!!!");
-                    continue;
+                    review = (String) msgObj.get(Constants.REVIEW);
+                    sentiment = sa.findSentiment(review);
+
+                    //send message to manager with results
+                    sqs.sendMessage(W2M_QueueURL,new Worker2Manager(
+                            (String) msgObj.get(Constants.IN_BUCKET),
+                            (String) msgObj.get(Constants.IN_KEY),
+                            review,
+                            sentiment,
+                            getEntities(sa, review),
+                            getIsSarcastic(sentiment, ((Long) msgObj.get(Constants.RATING)).intValue()))
+                            .stringifyUsingJSON());
                 }
-
-                review = (String) msgObj.get(Constants.REVIEW);
-                sentiment = sa.findSentiment(review);
-
-                //send message to manager with results
-                sqs.sendMessage(W2M_QueueURL,new Worker2Manager(
-                                (String) msgObj.get(Constants.IN_BUCKET),
-                                (String) msgObj.get(Constants.IN_KEY),
-                                 review,
-                                 sentiment,
-                                 getEntities(sa, review),
-                                 getIsSarcastic(sentiment, ((Long) msgObj.get(Constants.RATING)).intValue()))
-                                .stringifyUsingJSON());
+                //delete received messages
+                if(!managerMessages.isEmpty())
+                    sqs.deleteMessages(managerMessages, M2W_QueueURL);
             }
-            //delete received messages
-            if(!managerMessages.isEmpty())
-                sqs.deleteMessages(managerMessages, M2W_QueueURL);
+        } catch (Exception e){
+            System.out.println("Server is Down. closing Worker Script");
+            return;
         }
-
     }
 
     private static String getEntities(SentimentAnalysisHandler sa, String review){

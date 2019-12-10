@@ -36,7 +36,7 @@ public class FullTest {
                 Thread clientThread = new Thread(client);
                 clientThread.setName("Local-App-Thread");
                 if (i==2)
-                    Thread.sleep(110000); //sleep for 120 seconds
+                    Thread.sleep(120000); //sleep for 120 seconds
                 clientThread.start();
                 System.out.println("client " + (i+1) + " started");
             }
