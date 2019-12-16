@@ -6,10 +6,11 @@ import handlers.EC2Handler;
 import handlers.S3Handler;
 import handlers.SQSHandler;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -40,8 +41,6 @@ public class Manager {
 
 
     public static void initialConfigurations(boolean isClient) {
-
-
 
         // initial configurations
         ec2 = new EC2Handler(isClient);
@@ -90,7 +89,6 @@ public class Manager {
             clientsThread.setName("Manage-clients-Thread");
             clientsThread.start();
         }
-
 
         while (!terminate.get()) {
 
@@ -163,6 +161,9 @@ public class Manager {
         // all workers are finished, terminate them
         List<Instance> instances = ec2.listInstances(false);
         Instance managerInstance = null;
+
+        createStatistics();
+
         for (Instance instance: instances) {
 
             for (Tag tag: instance.getTags()) {
@@ -205,11 +206,13 @@ public class Manager {
             sqs.deleteQueue(W2M_QueueURL);
             sqs.deleteQueue(M2W_QueueURL);
 
-
             Constants.printDEBUG("DEBUG MANAGER: Kaboom");
-        } catch (Exception e){
+
+        }
+        catch (Exception e){
             e.printStackTrace();
-        } finally {
+        }
+        finally {
             // terminate - after this the program must end!
             if (!Constants.DEBUG_MODE) {
                 ec2.terminateEC2Instance(managerInstance.getInstanceId());
@@ -218,5 +221,29 @@ public class Manager {
             Constants.printDEBUG("DEBUG MANAGER: Manager Terminated. (doesn't have to reach this line");
         }
 
+    }
+
+    private static void createStatistics() {
+        String statistics = ec2.getStat();
+
+        String fileName = "StatisticsFile";
+        File statFile = new File(fileName);
+        PrintWriter out = null;
+        try {
+            out = new PrintWriter(new BufferedWriter(new FileWriter(statFile, true)));
+            out.println(statistics);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        finally
+        {
+            if (out != null) {
+                out.close();
+                String bucketName = "statisticsBucket";
+                String bucketKey = s3.createBucket(bucketName);
+                s3.uploadFileToS3(bucketKey, fileName);
+            }
+        }
     }
 }

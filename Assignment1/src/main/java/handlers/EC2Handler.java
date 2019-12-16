@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -16,6 +17,14 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
+import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
+import com.amazonaws.services.cloudwatch.AmazonCloudWatchClientBuilder;
+import com.amazonaws.services.cloudwatch.model.Datapoint;
+import com.amazonaws.services.cloudwatch.model.Dimension;
+import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
+import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.*;
@@ -52,10 +61,6 @@ public class EC2Handler {
             this.credentials = new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials());
         else
             this.credentials = new InstanceProfileCredentialsProvider(false);
-    }
-
-    public void setCredentials(AWSCredentialsProvider credentials) {
-        this.credentials = credentials;
     }
 
     /**
@@ -362,6 +367,69 @@ public class EC2Handler {
         System.out.println("Error Code: " + ase.getErrorCode());
         System.out.println("Request ID: " + ase.getRequestId());
 
+    }
+
+    public String getStat() {
+
+        AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClientBuilder
+                .standard()
+                .withCredentials(credentials)
+                .build();
+
+        StringBuilder statistics = new StringBuilder();
+
+        boolean done = false;   // done = True - when finished going over all the instances.
+        DescribeInstancesRequest instRequest = new DescribeInstancesRequest();
+
+        try {
+            while (!done) {
+
+                // Go through all instances
+                DescribeInstancesResult response = this.ec2.describeInstances(instRequest);
+
+                for (Reservation reservation : response.getReservations()) {
+                    for (Instance instance : reservation.getInstances()) {
+
+                        statistics.append("\n********************************************");
+                        statistics.append("\n\n Instance id: " + instance.getInstanceId());
+
+                        long offsetInMilliseconds = 1000 * 60 * 60;
+                        GetMetricStatisticsRequest request = new GetMetricStatisticsRequest()
+                                .withStartTime(new Date(new Date().getTime() - offsetInMilliseconds))
+                                .withNamespace("AWS/EC2")
+                                .withPeriod(60 * 60)
+                                .withDimensions(new Dimension()
+                                        .withName("InstanceId")
+                                        .withValue(instance.getInstanceId()))
+                                .withMetricName("CPUUtilization")
+                                .withStatistics("Average", "Maximum")
+                                .withEndTime(new Date());
+                        GetMetricStatisticsResult getMetricStatisticsResult = cloudWatchClient
+                                .getMetricStatistics(request);
+
+                        statistics.append("\nData Points:");
+                        List dataPoint = getMetricStatisticsResult.getDatapoints();
+                        for (Object aDataPoint : dataPoint) {
+                            Datapoint dp = (Datapoint) aDataPoint;
+                            statistics.append("\n   " + dp.toString());
+                        }
+                        statistics.append("\n********************************************");
+                    }
+                }
+
+                instRequest.setNextToken(response.getNextToken());
+                if (response.getNextToken() == null) {
+                    done = true;
+                }
+            }
+
+            return statistics.toString();
+
+        }
+        catch (AmazonServiceException ase) {
+            printASEException(ase);
+            return "";
+        }
     }
 
 
