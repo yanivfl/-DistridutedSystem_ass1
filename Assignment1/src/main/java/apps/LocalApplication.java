@@ -68,7 +68,7 @@ public class LocalApplication {
         JSONParser parser = new JSONParser();
         while(reader.ready()) {
             String line = reader.readLine();
-            System.out.println("DEBUG APP: Line is: " + line);
+//            Constants.printDEBUG("DEBUG APP: Line is: " + line);
             if(line == null) break;
 
             // parse line using JSON
@@ -125,7 +125,7 @@ public class LocalApplication {
 
             // Check if a Manager node is active on the EC2 cloud. If it is not, the application will start the manager node and create the queues
             if (!ec2.isTagExists(Constants.INSTANCE_TAG.MANAGER)) {
-                System.out.println("DEBUG APP: Starting Manager!");
+                Constants.printDEBUG("DEBUG APP: Starting Manager!");
                 startManager(ec2, s3, sqs);
             }
 
@@ -154,13 +154,13 @@ public class LocalApplication {
                 keyNamesOut[i] = s3.getAwsFileName(fileName) + "out";
             }
 
-            if(Constants.DEBUG_MODE){
-                Constants.printDEBUG("DEBUG APP: terminate is: " + terminate);
-                Constants.printDEBUG("DEBUG APP: n is: " + reviewsPerWorker);
-                Constants.printDEBUG("DEBUG APP: keyNamesIn is: " + Arrays.toString(keyNamesIn));
-                Constants.printDEBUG("DEBUG APP: keyNamesOut is: " + Arrays.toString(keyNamesOut));
-                Constants.printDEBUG("DEBUG APP: htmlNames is: " + Arrays.toString(htmlNames));
-            }
+//            if(Constants.DEBUG_MODE){
+//                Constants.printDEBUG("DEBUG APP: terminate is: " + terminate);
+//                Constants.printDEBUG("DEBUG APP: n is: " + reviewsPerWorker);
+//                Constants.printDEBUG("DEBUG APP: keyNamesIn is: " + Arrays.toString(keyNamesIn));
+//                Constants.printDEBUG("DEBUG APP: keyNamesOut is: " + Arrays.toString(keyNamesOut));
+//                Constants.printDEBUG("DEBUG APP: htmlNames is: " + Arrays.toString(htmlNames));
+//            }
 
 
             // Send a message to the (Clients -> apps.Manager) SQS queue, stating the location of the files on S3
@@ -214,10 +214,7 @@ public class LocalApplication {
             Constants.printDEBUG("finished getting all Output Files!!!!!!!!!!!!!!!!");
         } catch (Exception e){
             System.out.println("Server is Down. deleting User buckets.");
-            List<Bucket> buckets = s3.listBucketsAndObjects();
-            for ( Bucket bucket: buckets) {
-                s3.deleteBucket(bucket.getName());
-            }
+            e.printStackTrace();
             if (s3.listBucketsAndObjects().isEmpty()) {
                 System.out.println("User has No buckets");
             }

@@ -74,7 +74,7 @@ public class Manager {
 
         Thread.sleep(500);
 
-        // start the first threads (2 for workers and 2 for clients)
+        // start the first threads (INITIAL_THREADS for workers and INITIAL_THREADS for clients)
         for (int i = 0; i < INITIAL_THREADS ; i++) {
             workersThread = new Thread(new ManageWorkers(clientsInfo, filesCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerFile,terminate, waitingObject, ec2, s3, sqs));
             clientsThread = new Thread(new ManageClients(clientsInfo, filesCount, regulerWorkersCount, extraWorkersCount, maxWorkersPerFile, terminate, waitingObject, ec2, s3, sqs));
@@ -179,42 +179,44 @@ public class Manager {
         }
 
         // get queues (URLs)
-        String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
-        String C2M_QueueURL = sqs.getURL(Constants.CLIENTS_TO_MANAGER_QUEUE);
-        String W2M_QueueURL = sqs.getURL(Constants.WORKERS_TO_MANAGER_QUEUE);
-        String M2W_QueueURL = sqs.getURL(Constants.MANAGER_TO_WORKERS_QUEUE);
+        try {
+            String M2C_QueueURL = sqs.getURL(Constants.MANAGER_TO_CLIENTS_QUEUE);
+            String C2M_QueueURL = sqs.getURL(Constants.CLIENTS_TO_MANAGER_QUEUE);
+            String W2M_QueueURL = sqs.getURL(Constants.WORKERS_TO_MANAGER_QUEUE);
+            String M2W_QueueURL = sqs.getURL(Constants.MANAGER_TO_WORKERS_QUEUE);
 
-        // busy wait on clients queue (by their expected emptying order)
-        // Note: We don't care about (Clients -> Manager) queue, because new clients can always try to connect
-        // 1. (Manager -> Workers)
-        // 2. (Workers -> Manager)
-        // 3. (Manager -> Clients)
-        Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 3");
-        while (!sqs.receiveMessages(M2W_QueueURL, false, true).isEmpty());
-        Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 2");
-        while (!sqs.receiveMessages(W2M_QueueURL, false, true).isEmpty());
-        Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 1");
-        while (!sqs.receiveMessages(M2C_QueueURL, false, true).isEmpty());
+            // busy wait on clients queue (by their expected emptying order)
+            // Note: We don't care about (Clients -> Manager) queue, because new clients can always try to connect
+            // 1. (Manager -> Workers)
+            // 2. (Workers -> Manager)
+            // 3. (Manager -> Clients)
+//            Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 3");
+//            while (!sqs.receiveMessages(M2W_QueueURL, true, true).isEmpty()) ;
+//            Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 2");
+//            while (!sqs.receiveMessages(W2M_QueueURL, true, true).isEmpty()) ;
+//            Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 1");
+//            while (!sqs.receiveMessages(M2C_QueueURL, true, true).isEmpty()) ;
 
-        // delete all queues
-        sqs.deleteQueue(M2C_QueueURL);
-        sqs.deleteQueue(C2M_QueueURL);
-        sqs.deleteQueue(W2M_QueueURL);
-        sqs.deleteQueue(M2W_QueueURL);
+            Thread.sleep(120000); //2 minutes more than enough time for all clients to collect data
+
+            // delete all queues
+            sqs.deleteQueue(M2C_QueueURL);
+            sqs.deleteQueue(C2M_QueueURL);
+            sqs.deleteQueue(W2M_QueueURL);
+            sqs.deleteQueue(M2W_QueueURL);
 
 
-        Constants.printDEBUG("DEBUG MANAGER: Kaboom");
+            Constants.printDEBUG("DEBUG MANAGER: Kaboom");
+        } catch (Exception e){
+            e.printStackTrace();
+        } finally {
+            // terminate - after this the program must end!
+            if (!Constants.DEBUG_MODE) {
+                ec2.terminateEC2Instance(managerInstance.getInstanceId());
+            }
 
-        // terminate - after this the program must end!
-        if (!Constants.DEBUG_MODE) {
-            ec2.terminateEC2Instance(managerInstance.getInstanceId());
+            Constants.printDEBUG("DEBUG MANAGER: Manager Terminated. (doesn't have to reach this line");
         }
-
-        Constants.printDEBUG("DEBUG MANAGER: Manager Terminated. (doesn't have to reach this line");
-
-         // TODO: add support in manageClients and managerWorkers to interrupt
-
-        // TODO: order the short and long polling and visibillity timeout
 
     }
 }

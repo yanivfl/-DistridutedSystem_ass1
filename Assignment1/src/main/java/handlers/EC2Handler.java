@@ -74,8 +74,12 @@ public class EC2Handler {
             else
                 jarCommand = Constants.JAR_COMMAND_MANAGER;
         }
-        else
-            jarCommand = Constants.JAR_COMMAND_WORKER;
+        else {
+            if (Constants.isMiniRun)
+                jarCommand = Constants.JAR_COMMAND_MINI_WORKER;
+            else
+                jarCommand = Constants.JAR_COMMAND_WORKER;
+        }
 
         return Base64.encodeBase64String(userDataContent.replace(Constants.JAR_COMMAND, jarCommand).getBytes());
     }
@@ -122,7 +126,7 @@ public class EC2Handler {
             RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, 1, 1)
                     .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn(managerArn.replaceFirst("role", "instance-profile")))
                     .withUserData(userData)
-                    .withInstanceType(InstanceType.T2Micro.toString())
+                    .withInstanceType(InstanceType.T2Small.toString())
                     .withKeyName(Constants.KEY_PAIR);
             List<Instance> instances = this.ec2.runInstances(runInstanceRequest).getReservation().getInstances();
             Instance manager = instances.get(0);
@@ -167,7 +171,7 @@ public class EC2Handler {
             RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, machineCount, machineCount)
                     .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn(workersArn.replaceFirst("role", "instance-profile")))
                     .withUserData(userData)
-                    .withInstanceType(InstanceType.T2Micro.toString())
+                    .withInstanceType(InstanceType.T2Large.toString())
                     .withKeyName(Constants.KEY_PAIR);
             List<Instance> instances = this.ec2.runInstances(runInstanceRequest).getReservation().getInstances();
 

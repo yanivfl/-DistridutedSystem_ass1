@@ -100,21 +100,21 @@ public class ManageWorkers implements Runnable {
 
                 boolean isUpdated = clientInfo.updateLocalOutputFile(inBucket,inKey, msgObj.toJSONString());
                 if (isUpdated) {
-                    if (Constants.DEBUG_MODE){
-                        Constants.printDEBUG("clientInfo: "+ clientInfo.toString());
-                        Constants.printDEBUG("files: " + filesCount.get());
-                        Constants.printDEBUG("reguler workers: " +regulerWorkersCount.get());
-                        Constants.printDEBUG("extra workers: " +extraWorkersCount.get());
-                        Constants.printDEBUG("pq: " + maxWorkersPerFile.toString());
-                        Constants.printDEBUG("terminate: " + terminate.get());
-                    }
+//                    if (Constants.DEBUG_MODE){
+//                        Constants.printDEBUG("clientInfo: "+ clientInfo.toString());
+//                        Constants.printDEBUG("files: " + filesCount.get());
+//                        Constants.printDEBUG("reguler workers: " +regulerWorkersCount.get());
+//                        Constants.printDEBUG("extra workers: " +extraWorkersCount.get());
+//                        Constants.printDEBUG("pq: " + maxWorkersPerFile.toString());
+//                        Constants.printDEBUG("terminate: " + terminate.get());
+//                    }
 
 
                     // check if there are more reviews for this file
                    long reviewsLeft = clientInfo.decOutputCounter(inKey);
                    if (reviewsLeft == 0){
                        String outKey = clientInfo.getOutKey(inKey);
-                       Constants.printDEBUG("DEBUG Manage Workers: {inBucket: " +inBucket + ", inKey: " + inKey + ", outKey: " + outKey + "}");
+//                       Constants.printDEBUG("DEBUG Manage Workers: {inBucket: " +inBucket + ", inKey: " + inKey + ", outKey: " + outKey + "}");
                        s3.uploadLocalToS3(inBucket, clientInfo.getLocalFileName(inBucket,inKey), outKey);
                        clientInfo.deleteLocalFile(inBucket, inKey);
                        filesCount.decrementAndGet();

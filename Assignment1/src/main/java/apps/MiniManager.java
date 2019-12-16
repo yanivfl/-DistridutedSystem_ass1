@@ -5,6 +5,9 @@ import com.amazonaws.services.sqs.model.Message;
 import handlers.EC2Handler;
 import handlers.S3Handler;
 import handlers.SQSHandler;
+
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.util.List;
 
 public class MiniManager {
@@ -22,9 +25,22 @@ public class MiniManager {
         ec2.launchWorkers_EC2Instances(1, ec2.getRoleARN(Constants.WORKERS_ROLE), Constants.USER_DATA_PATH);
 
         System.out.println("use s3 - create and delete bucket");
-        String testBucket = "TestBucket";
-        s3.createBucket(testBucket);
-        s3.deleteBucket(testBucket);
+        String bucketName = "akiaj24cwsltdpfv43lqaminibucket";
+        String testBucket = "MiniBucket";
+        String fileName = "test_Mini";
+        BufferedReader reader = null;
+        try {
+            reader = s3.downloadFile(bucketName, s3.getAwsFileName(fileName));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Printing file's content:");
+        try {
+            System.out.println(reader.readLine());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         System.out.println("use sqs");
         String W2M_queue = sqs.getURL(Constants.WORKERS_TO_MANAGER_QUEUE);

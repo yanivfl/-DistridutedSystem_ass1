@@ -88,7 +88,7 @@ public class ManageClients implements Runnable {
                 // Create message to worker and add it to the queue
                 Manager2Worker M2W_message = new Manager2Worker(bucket, inKey, text, rating);
                 sqs.safelySendMessage(M2W_QueueURL, M2W_message.stringifyUsingJSON());
-                System.out.println("DEBUG MANAGE CLIENTS: sent to worker: " + M2W_message.stringifyUsingJSON());
+//                Constants.printDEBUG("DEBUG MANAGE CLIENTS: sent to worker: " + M2W_message.stringifyUsingJSON());
             }
         }
     }
@@ -131,7 +131,7 @@ public class ManageClients implements Runnable {
      */
     public void inputFileMessage(JSONObject msgObj) {
         try{
-            System.out.println("DEBUG MANAGE CLIENTS: got message: " + msgObj.toJSONString());
+//            Constants.printDEBUG("DEBUG MANAGE CLIENTS: got message: " + msgObj.toJSONString());
 
             // parse json
             String bucket = (String) msgObj.get(Constants.BUCKET);
@@ -142,7 +142,7 @@ public class ManageClients implements Runnable {
 
             // If in termination mode and this is a new client, do not accept it's messages (ignore)
             if (terminate.get() && !clientsInfo.containsKey(bucket)){
-                System.out.println("DEBUG MANAGER: Manager declining message because it's in termination mode");
+                Constants.printDEBUG("DEBUG MANAGER: Manager declining message because it's in termination mode");
                 return;
             }
 
@@ -195,6 +195,7 @@ public class ManageClients implements Runnable {
      */
     public void terminateMessage() {
         terminate.set(true);
+        System.out.println("Starting termination process");
         synchronized (waitingObject) {
             waitingObject.notifyAll();
         }
