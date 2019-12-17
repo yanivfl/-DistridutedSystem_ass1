@@ -61,7 +61,7 @@ public class Manager {
     public static void main(String[] args) throws InterruptedException {
         initialConfigurations(Constants.DEBUG_MODE);
 
-        //launch first worker! TODO if works this is not needed
+        //launch first worker!
         ec2.launchWorkers_EC2Instances(1,ec2.getRoleARN(Constants.WORKERS_ROLE), Constants.USER_DATA_PATH);
         regulerWorkersCount.incrementAndGet();
 
@@ -188,20 +188,10 @@ public class Manager {
             String W2M_QueueURL = sqs.getURL(Constants.WORKERS_TO_MANAGER_QUEUE);
             String M2W_QueueURL = sqs.getURL(Constants.MANAGER_TO_WORKERS_QUEUE);
 
-            // busy wait on clients queue (by their expected emptying order)
-            // Note: We don't care about (Clients -> Manager) queue, because new clients can always try to connect
-            // 1. (Manager -> Workers)
-            // 2. (Workers -> Manager)
-            // 3. (Manager -> Clients)
-//            Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 3");
-//            while (!sqs.receiveMessages(M2W_QueueURL, true, true).isEmpty()) ;
-//            Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 2");
-//            while (!sqs.receiveMessages(W2M_QueueURL, true, true).isEmpty()) ;
-//            Constants.printDEBUG("DEBUG MANAGER: Manager self-destruct in 1");
-//            while (!sqs.receiveMessages(M2C_QueueURL, true, true).isEmpty()) ;
-
+            Constants.printDEBUG("let clients collect data, waiting 2 minutes");
             Thread.sleep(120000); //2 minutes more than enough time for all clients to collect data
 
+            Constants.printDEBUG("deleting all queues");
             // delete all queues
             sqs.deleteQueue(M2C_QueueURL);
             sqs.deleteQueue(C2M_QueueURL);

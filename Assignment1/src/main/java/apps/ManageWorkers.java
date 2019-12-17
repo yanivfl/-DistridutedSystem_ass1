@@ -55,7 +55,6 @@ public class ManageWorkers implements Runnable {
     @Override
     public void run() {
         Constants.printDEBUG("Manage-workers: started running");
-        JSONParser jsonParser = new JSONParser();
 
         // Get the (Worker -> Manager) ( Manager -> Clients) SQS queues URLs
         String W2M_QueueURL = sqs.getURL(Constants.WORKERS_TO_MANAGER_QUEUE);

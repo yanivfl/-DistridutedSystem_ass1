@@ -9,9 +9,6 @@ echo 2 | alternatives --config java
 echo "***** downloading jarsAss1.zip *****"
 aws s3 cp s3://akiaj24cwsltdpfv43lqajars/jarsAss1.zip / --region us-east-1
 
-echo "***** downloading Assignment1.jar *****"
-aws s3 cp s3://akiaj24cwsltdpfv43lqajars/Assignment1.jar / --region us-east-1
-
 echo "***** unzip jarsAss1.zip *****"
 unzip -P YanivYuval /jarsAss1.zip
 

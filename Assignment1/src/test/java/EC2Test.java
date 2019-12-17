@@ -20,7 +20,7 @@ public class EC2Test {
 
     // ****************** important tests ******************
 
-    // TODO
+
     /** This test launches a manager instance on ec2 that launch a worker on ec2.
      * 1. The test verify the user data works.
      * 2. The test verify that the worker has SQS permissions and that the manager has EC2, S3, SQS permissions

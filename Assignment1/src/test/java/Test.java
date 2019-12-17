@@ -163,7 +163,7 @@ public class Test {
 
         finally {
 
-            // TODO: where should this be?
+
             if (sqs != null && messages != null) {
                 System.out.println("Deleting a message.\n");
                 sqs.deleteMessages(messages, myQueueURL);

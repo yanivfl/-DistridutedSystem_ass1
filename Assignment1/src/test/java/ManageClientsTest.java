@@ -87,7 +87,7 @@ public class ManageClientsTest {
             sqs.sendMessage(C2M_QueueURL, messageClientToManager.stringifyUsingJSON());
 
             // Create manageClients Runnable
-            Runnable manageClients = new ManageClients(clientsInfo, new AtomicInteger(0), workersCount, new AtomicInteger(0), new PriorityQueue<Integer>(), terminate, null, ec2, s3, sqs); //TODO: this is wrong
+            Runnable manageClients = new ManageClients(clientsInfo, new AtomicInteger(0), workersCount, new AtomicInteger(0), new PriorityQueue<Integer>(), terminate, null, ec2, s3, sqs);
             Thread t1 = new Thread(manageClients);
             t1.start();
             t1.join();
@@ -137,7 +137,7 @@ public class ManageClientsTest {
             sqs.sendMessage(C2M_QueueURL, messageClientToManager2.stringifyUsingJSON());
 
             // Create manageClients Runnable
-            ManageClients manageClients = new ManageClients(clientsInfo, new AtomicInteger(0), workersCount, new AtomicInteger(0), new PriorityQueue<Integer>(), terminate, null, ec2, s3, sqs);    // TODO: this is wrong
+            ManageClients manageClients = new ManageClients(clientsInfo, new AtomicInteger(0), workersCount, new AtomicInteger(0), new PriorityQueue<Integer>(), terminate, null, ec2, s3, sqs);
 
             JSONParser jsonParser = new JSONParser();
             JSONObject msgObj;

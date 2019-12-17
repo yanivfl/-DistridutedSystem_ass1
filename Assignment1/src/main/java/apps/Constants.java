@@ -30,7 +30,6 @@ public class Constants {
     public static final String IS_SARCASTIC= "isSarcastic";
     public static final String RATING= "rating";
     public static final String BUCKET= "bucket";
-    public static final String TERMINATE= "terminate";
     public static final String REVIEWS_PER_WORKER= "reviewsPerWorker";
     public static final String NUM_FILES= "numFiles";
     public static final String IS_DONE = "isDone";
@@ -48,11 +47,9 @@ public class Constants {
     public static final String KEY_PAIR = "YuvalKeyPair";
 
     public static final String JAR_COMMAND = "$JAR_COMMAND";
-    public static final String JAR_COMMAND_MINI_MANAGER = "aws s3 cp s3://akiaj24cwsltdpfv43lqajars/user_data.sh / --region us-east-1\n" +
-            "java -cp .:Assignment1.jar apps.MiniManager";
+    public static final String JAR_COMMAND_MINI_MANAGER = "java -cp .:Assignment1.jar apps.MiniManager";
     public static final String JAR_COMMAND_MINI_WORKER = "java -cp .:Assignment1.jar:stanford-corenlp-3.3.0.jar:stanford-corenlp-3.3.0-models.jar:ejml-0.23.jar:jollyday-0.4.7.jar apps.MiniWorker";
-    public static final String JAR_COMMAND_MANAGER = "aws s3 cp s3://akiaj24cwsltdpfv43lqajars/user_data.sh / --region us-east-1\n" +
-            "java -cp .:Assignment1.jar apps.Manager";
+    public static final String JAR_COMMAND_MANAGER = "java -cp .:Assignment1.jar apps.Manager";
     public static final String JAR_COMMAND_WORKER = "java -cp .:Assignment1.jar:stanford-corenlp-3.3.0.jar:stanford-corenlp-3.3.0-models.jar:ejml-0.23.jar:jollyday-0.4.7.jar apps.MainWorkerClass";
 
     public enum INSTANCE_TAG {
@@ -65,17 +62,6 @@ public class Constants {
     }
 
     public static final String[] HTML_COLORS = new String[]{"#990000", "#e60000", "#000000", "#8cff1a", "#4d9900"};
-
-    public static String inputStreamToString(InputStream input) throws IOException {
-        BufferedInputStream bis = new BufferedInputStream(input);
-        ByteArrayOutputStream buf = new ByteArrayOutputStream();
-        int result = bis.read();
-        while(result != -1) {
-            buf.write((byte) result);
-            result = bis.read();
-        }
-        return buf.toString("UTF-8");
-    }
 
     /**
      * validates Message and returnes Json body
@@ -109,9 +95,7 @@ public class Constants {
     public static boolean DEBUG_MODE = false;
     public static AtomicBoolean IS_MANAGER_ON;
     public static void printDEBUG(String toPrint){
-//        if (DEBUG_MODE){
             System.out.println(toPrint);
-//        }
     }
 
 }
