@@ -5,13 +5,21 @@
 
 <br/><br/>
 ## Running Instructions:
-
-
-__Instructions:__ run a client using the following shell command-
-
-$> java -jar Assignment1.jar inputFileName1… inputFileNameN outputFileName1… outputFileNameN n (terminate-optional)
-
-TODO
+1. Create a pair key (AWS) with the name: "YuvalKeyPair.pem" 
+2. Open a bucket in your S3
+3. Open the user_data.sh file of the asignment and change to bucket name to your bucket's name. 
+(line: 10)
+4. Create a zip file with the name: "jarsAss1.zip", protected by a password "YanivYuval", containing the following:
+ * Assignment1.jar
+ * ejml-0.23.jar
+ * jollyday-0.4.7.jar
+ * stanford-corenlp-3.3.0-models.jar
+ * stanford-corenlp-3.3.0.jar
+ * user_data.sh
+5. Upload the zip to S3. 
+6. Run the java command from the assignment:
+"java -jar Assignment1.jar inputFileName1… inputFileNameN outputFileName1… outputFileNameN n (terminate)"
+ 
 
 <br/><br/>
 ## Security
@@ -20,6 +28,9 @@ TODO
 * __For non-client__ - credentials are provided via predefined roles.
     * Manager - Role is defined with EC2, SQS and S3 permissions.
     * Workers - Role is defined with SQS permissions.
+    
+### Assignment jars & user data
+Contained in a zip, protected by password.
 
 <br/><br/>
 ## Scalability
@@ -51,16 +62,27 @@ This means the same workers serve the same clients and therefore, their amount m
 
 <br/><br/>
 ## Persistence
-we always have more workers than exactly needed in case one of the workers die. in addition we delete messages only after we have fully done the task the message was designated for.
-What if a node stalls for a while? we have more than one worker/thread for every task so if 1 node stalls, another can take the message (visibility timeout) and perform the task.
-if there is an exception in any of the nodes (Local APp, Manager, Worker) we handle it, if it's an interrupt exception then we leave gracefully. if not we continue to work.
-
-an addition failure due to broken communication or failed nodes is missed information. 
-we handled missed information by deleting messages after task has been done.
+* We always have more workers than exactly needed in case one of the workers die.
+* We delete messages from the SQS queue only after the worker has fully done the task. 
+* We used visibillity timeout. That means that if 1 node stall, another can take the message (after a certain amout of time) and perform the task.
+* Exceptions (in LocalApp, Manager, Worker) - we handle it. If it's an interrupt exception then we leave gracefully, if not we continue to work.
 
 <br/><br/>
-## Run process
+## Run process image
 Added in another file named: run_procces.png
+
+<br/><br/>
+## Statistics
+__Test:__ 
+* Client 1 - contains 3 input files, n=100.
+* Client 2 - contains 2 input files, n=100, terminate.
+(total - all 5 input files from the assignment)
+
+__AMI:__ ami-b66ed3de
+__Manager instance type:__ T2Small
+__Workers instance type:__ T2Large
+__Time for the program to finish:__
+
 
 
 
