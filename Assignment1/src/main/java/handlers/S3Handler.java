@@ -101,55 +101,6 @@ public class S3Handler {
         return keyName;
     }
 
-    public void uploadJarDirectory(String directoryName) throws IOException {
-        String bucketName = getAwsBucketName(directoryName);
-        String key = null;
-
-        try {
-            /*
-             * Create a new S3 bucket - Amazon S3 bucket names are globally unique,
-             * so once a bucket name has been taken by any user, you can't create
-             * another bucket with that same name.
-             *
-             * You can optionally specify a location for your bucket if you want to
-             * keep your data closer to your applications or users.
-             */
-            System.out.println("Creating bucket " + bucketName + "\n");
-            this.s3.createBucket(bucketName);
-
-            /*
-             * List the buckets in your account
-             */
-            System.out.println("Listing buckets");
-            for (Bucket bucket : this.s3.listBuckets()) {
-                System.out.println(" - " + bucket.getName());
-            }
-            System.out.println();
-
-            /*
-             * Upload an object to your bucket - You can easily upload a file to
-             * S3, or upload directly an InputStream if you know the length of
-             * the data in the stream. You can also specify your own metadata
-             * when uploading to S3, which allows you set a variety of options
-             * like content-type and content-encoding, plus additional metadata
-             * specific to your applications.
-             */
-            System.out.println("Uploading a new object to S3 from a file\n");
-            File dir = new File(directoryName);
-            for (File file : dir.listFiles()) {
-                key = getAwsFileName(file.getName());
-                PutObjectRequest req = new PutObjectRequest(bucketName, key, file);
-                s3.putObject(req);
-            }
-
-        } catch (AmazonServiceException ase) {
-            printAseException(ase);
-        } catch (AmazonClientException ace) {
-            printAceException(ace);
-        }
-    }
-
-
     public BufferedReader downloadFile(String bucketName, String key) throws IOException {
         try {
             System.out.println("Downloading an object");
@@ -164,20 +115,7 @@ public class S3Handler {
         return null;
     }
 
-
     public void displayFile(String bucketName, String key) throws IOException {
-        /*
-         * Download an object - When you download an object, you get all of
-         * the object's metadata and a stream from which to read the contents.
-         * It's important to read the contents of the stream as quickly as
-         * possibly since the data is streamed directly from Amazon S3 and your
-         * network connection will remain open until you read all the data or
-         * close the input stream.
-         *
-         * GetObjectRequest also supports several other options, including
-         * conditional downloading of objects based on modification times,
-         * ETags, and selectively downloading a range of an object.
-         */
         try {
 
             System.out.println("Displaying an object");
@@ -257,7 +195,6 @@ public class S3Handler {
 
     /** List all s3 buckets with their files */
     public List<Bucket> listBucketsAndObjects() {
-
         List<Bucket> buckets = s3.listBuckets();
         System.out.println("S3 buckets are:");
         for (Bucket bucket : buckets) {
@@ -271,12 +208,6 @@ public class S3Handler {
                 System.out.println("    - " + objectSummary.getKey() + "  (size = " + objectSummary.getSize() + ")");
             }
         }
-
         return buckets;
     }
-
-
-
 }
-
-

@@ -1,7 +1,5 @@
 package apps;
 
-import apps.Constants;
-import handlers.EC2Handler;
 import handlers.SQSHandler;
 
 public class MiniWorker {

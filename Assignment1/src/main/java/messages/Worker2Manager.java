@@ -1,11 +1,7 @@
 package messages;
 
 import apps.Constants;
-import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
-
 
 public class Worker2Manager extends Base {
 

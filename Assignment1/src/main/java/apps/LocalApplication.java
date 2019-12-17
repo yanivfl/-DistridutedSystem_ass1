@@ -1,6 +1,5 @@
 package apps;
 
-import com.amazonaws.services.s3.model.Bucket;
 import messages.Client2Manager;
 import messages.Client2Manager_terminate;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -16,7 +15,6 @@ import org.json.simple.parser.ParseException;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -45,11 +43,9 @@ public class LocalApplication {
         sqs.createSQSQueue(Constants.WORKERS_TO_MANAGER_QUEUE, false);
         sqs.createSQSQueue(Constants.MANAGER_TO_WORKERS_QUEUE, false);
 
-
         // start the manager
         String managerArn = ec2.getRoleARN(Constants.MANAGER_ROLE);
         ec2.launchManager_EC2Instance(managerArn, Constants.USER_DATA_PATH);
-
     }
 
     /**
@@ -68,7 +64,6 @@ public class LocalApplication {
         JSONParser parser = new JSONParser();
         while(reader.ready()) {
             String line = reader.readLine();
-//            Constants.printDEBUG("DEBUG APP: Line is: " + line);
             if(line == null) break;
 
             // parse line using JSON
@@ -98,19 +93,19 @@ public class LocalApplication {
         html.append("</ul>\n</body>\n</html>");
 
         // create the HTML file
-
         htmlName = htmlName.endsWith(".html")? htmlName : htmlName + ".html";
 
         new File(htmlName);
         Files.write(Paths.get(htmlName), html.toString().getBytes());
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
 
         // initial configurations
         EC2Handler ec2 = new EC2Handler(true);
         S3Handler s3 = new S3Handler(true);
         SQSHandler sqs = new SQSHandler(true);
+
         try{
             // extract input file name, output file names and optional termination message from args
             // example args: inputFileName1… inputFileNameN outputFileName1… outputFileNameN n terminate(optional)
@@ -153,15 +148,6 @@ public class LocalApplication {
                 // this will be the keyName of the output file
                 keyNamesOut[i] = s3.getAwsFileName(fileName) + "out";
             }
-
-//            if(Constants.DEBUG_MODE){
-//                Constants.printDEBUG("DEBUG APP: terminate is: " + terminate);
-//                Constants.printDEBUG("DEBUG APP: n is: " + reviewsPerWorker);
-//                Constants.printDEBUG("DEBUG APP: keyNamesIn is: " + Arrays.toString(keyNamesIn));
-//                Constants.printDEBUG("DEBUG APP: keyNamesOut is: " + Arrays.toString(keyNamesOut));
-//                Constants.printDEBUG("DEBUG APP: htmlNames is: " + Arrays.toString(htmlNames));
-//            }
-
 
             // Send a message to the (Clients -> apps.Manager) SQS queue, stating the location of the files on S3
             for (int i=0; i<num_files; i++) {
@@ -211,8 +197,10 @@ public class LocalApplication {
             }
             s3.deleteBucket(myBucket);
 
-            Constants.printDEBUG("finished getting all Output Files!!!!!!!!!!!!!!!!");
-        } catch (Exception e){
+            Constants.printDEBUG("finished getting all Output Files :)");
+        }
+
+        catch (Exception e){
             System.out.println("Server is Down. deleting User buckets.");
             e.printStackTrace();
             if (s3.listBucketsAndObjects().isEmpty()) {

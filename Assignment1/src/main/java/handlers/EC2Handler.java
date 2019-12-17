@@ -1,6 +1,5 @@
 package handlers;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -17,9 +16,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClientBuilder;
 import com.amazonaws.services.cloudwatch.model.Datapoint;
 import com.amazonaws.services.cloudwatch.model.Dimension;
@@ -31,7 +28,6 @@ import com.amazonaws.services.ec2.model.*;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
-import com.amazonaws.services.identitymanagement.model.GetInstanceProfileRequest;
 import com.amazonaws.services.identitymanagement.model.GetRoleRequest;
 import com.amazonaws.services.identitymanagement.model.GetRoleResult;
 import com.amazonaws.services.ec2.model.Tag;
@@ -74,16 +70,10 @@ public class EC2Handler {
 
         String jarCommand;
         if (isManager) {
-            if (Constants.isMiniRun)
-                jarCommand = Constants.JAR_COMMAND_MINI_MANAGER;
-            else
-                jarCommand = Constants.JAR_COMMAND_MANAGER;
+            jarCommand = (Constants.isMiniRun) ? Constants.JAR_COMMAND_MINI_MANAGER : Constants.JAR_COMMAND_MANAGER;
         }
         else {
-            if (Constants.isMiniRun)
-                jarCommand = Constants.JAR_COMMAND_MINI_WORKER;
-            else
-                jarCommand = Constants.JAR_COMMAND_WORKER;
+            jarCommand = (Constants.isMiniRun) ? Constants.JAR_COMMAND_MINI_WORKER : Constants.JAR_COMMAND_WORKER;
         }
 
         return Base64.encodeBase64String(userDataContent.replace(Constants.JAR_COMMAND, jarCommand).getBytes());
@@ -390,14 +380,15 @@ public class EC2Handler {
                 for (Reservation reservation : response.getReservations()) {
                     for (Instance instance : reservation.getInstances()) {
 
-                        statistics.append("\n********************************************");
-                        statistics.append("\n\n Instance id: " + instance.getInstanceId());
+                        statistics.append("\n\n********************************************");
+                        statistics.append("\n\nInstance id: " + instance.getInstanceId());
+                        statistics.append("\ntag: " + instance.getTags().toString());
 
                         long offsetInMilliseconds = 1000 * 60 * 60;
                         GetMetricStatisticsRequest request = new GetMetricStatisticsRequest()
                                 .withStartTime(new Date(new Date().getTime() - offsetInMilliseconds))
                                 .withNamespace("AWS/EC2")
-                                .withPeriod(60 * 60)
+                                .withPeriod(60 * 30)
                                 .withDimensions(new Dimension()
                                         .withName("InstanceId")
                                         .withValue(instance.getInstanceId()))
@@ -407,13 +398,16 @@ public class EC2Handler {
                         GetMetricStatisticsResult getMetricStatisticsResult = cloudWatchClient
                                 .getMetricStatistics(request);
 
-                        statistics.append("\nData Points:");
                         List dataPoint = getMetricStatisticsResult.getDatapoints();
                         for (Object aDataPoint : dataPoint) {
                             Datapoint dp = (Datapoint) aDataPoint;
-                            statistics.append("\n   " + dp.toString());
+                            statistics.append("\n   Timestamp: " + dp.getTimestamp());
+                            statistics.append("\n   Average: " + dp.getAverage());
+                            statistics.append("\n   Maximum: " + dp.getMaximum());
+                            statistics.append("\n   Minimum: " + dp.getMinimum());
+                            statistics.append("\n   Unit: " + dp.getUnit());
                         }
-                        statistics.append("\n********************************************");
+                        statistics.append("\n\n********************************************");
                     }
                 }
 
@@ -446,8 +440,6 @@ public class EC2Handler {
         try {
             // launch instances
             RunInstancesRequest runInstanceRequest = new RunInstancesRequest(Constants.AMI, machineCount, machineCount)
-//                    .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn())     // TODO
-//                    .withUserData()   // TODO
                     .withInstanceType(InstanceType.T2Micro.toString())
                     .withKeyName(Constants.KEY_PAIR);
             List<Instance> instances = this.ec2.runInstances(runInstanceRequest).getReservation().getInstances();

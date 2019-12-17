@@ -28,10 +28,10 @@ public class SentimentAnalysisHandler {
         this.NERPipeline = new StanfordCoreNLP(props);
     }
 
-    /*
-     *Sentiment Analysis: Given a text find out its sentiment;
-     *whether what the text is saying is positive/negative/neutral.
-     *The tool gives a score between 0 = very negative up to 4 = very positive.
+    /**
+     * Sentiment Analysis: Given a text find out its sentiment;
+     * whether what the text is saying is positive/negative/neutral.
+     * The tool gives a score between 0 = very negative up to 4 = very positive.
      */
     public int findSentiment(String review) {
         int mainSentiment = 0;
@@ -48,20 +48,17 @@ public class SentimentAnalysisHandler {
                     mainSentiment = sentiment;
                     longest = partText.length();
                 }
-
             }
         }
         return mainSentiment;
     }
 
-
-    /*
+    /**
     Named Entity Extraction:
     Given a text extracts the entities of the text together with their entity type (e.g. Obama:Person)
     */
     public List<String> getListOfEntities(String review){
         List<String> entities = new ArrayList<>();
-
 
         // create an empty Annotation just with the given text
         Annotation document = new Annotation(review);
@@ -82,12 +79,9 @@ public class SentimentAnalysisHandler {
                 // this is the NER label of the token
                 String ne = token.get(CoreAnnotations.NamedEntityTagAnnotation.class);
                 entities.add(word + ":" + ne);
-//                System.out.println("\t-" + word + ":" + ne);
             }
         }
 
         return entities;
     }
-
-
 }

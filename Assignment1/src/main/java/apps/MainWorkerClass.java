@@ -10,9 +10,7 @@ import java.util.List;
 
 public class MainWorkerClass {
 
-    // TODO: fix user data for the worker!! (according to the assignment running description
-
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         SQSHandler sqs = new SQSHandler(Constants.DEBUG_MODE);
         SentimentAnalysisHandler sa = new SentimentAnalysisHandler();
         String review;
@@ -51,31 +49,27 @@ public class MainWorkerClass {
                 if(!managerMessages.isEmpty())
                     sqs.deleteMessages(managerMessages, M2W_QueueURL);
             }
-        } catch (Exception e){
+        }
+        catch (Exception e){
             System.out.println("Server is Down. closing Worker Script");
             return;
         }
     }
 
     private static String getEntities(SentimentAnalysisHandler sa, String review){
-        return sa
-                .getListOfEntities(review)
-                .toString();
+        return sa.getListOfEntities(review).toString();
     }
 
     /**
      * get if the review is sarcastic or not
-     * @param sentiment
-     * @param ratings
+     * params: sentiment, ratings
      * @return if rating is negative {1,2} and sentiment is positive {3,4} return true
      *         if rating is positive {4,5} and sentiment is negative {0,1} return true
      *         else return false
      */
 
     private static boolean getIsSarcastic(int sentiment, int ratings){
-        if(  Math.abs( (sentiment +1) - ratings)  >= 2 )
-            return true;
-        else return false;
+        return Math.abs((sentiment + 1) - ratings) >= 2;
     }
 
 }

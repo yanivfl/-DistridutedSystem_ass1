@@ -1,13 +1,11 @@
 package apps;
 
-import apps.Constants;
 import com.amazonaws.services.sqs.model.Message;
 import handlers.EC2Handler;
 import handlers.S3Handler;
 import handlers.SQSHandler;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.util.List;
 
 public class MiniManager {

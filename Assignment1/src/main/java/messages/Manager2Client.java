@@ -2,10 +2,6 @@ package messages;
 
 import apps.Constants;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
-
-import java.util.UUID;
 
 public class Manager2Client extends Base {
 

@@ -18,7 +18,6 @@ import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Manage the different messages that comes from clients
@@ -88,7 +87,6 @@ public class ManageClients implements Runnable {
                 // Create message to worker and add it to the queue
                 Manager2Worker M2W_message = new Manager2Worker(bucket, inKey, text, rating);
                 sqs.safelySendMessage(M2W_QueueURL, M2W_message.stringifyUsingJSON());
-//                Constants.printDEBUG("DEBUG MANAGE CLIENTS: sent to worker: " + M2W_message.stringifyUsingJSON());
             }
         }
     }
@@ -131,8 +129,6 @@ public class ManageClients implements Runnable {
      */
     public void inputFileMessage(JSONObject msgObj) {
         try{
-//            Constants.printDEBUG("DEBUG MANAGE CLIENTS: got message: " + msgObj.toJSONString());
-
             // parse json
             String bucket = (String) msgObj.get(Constants.BUCKET);
             String inKey = (String) msgObj.get(Constants.IN_KEY);
@@ -145,7 +141,6 @@ public class ManageClients implements Runnable {
                 Constants.printDEBUG("DEBUG MANAGER: Manager declining message because it's in termination mode");
                 return;
             }
-
 
             // Initialize this local app client in the clients info map if it wasn't initialized yet.
             // (first message initialize the ClientInfo)
@@ -178,7 +173,7 @@ public class ManageClients implements Runnable {
             sendMessagesToWorkers(outputReader, M2W_QueueURL, bucket, inKey);
 
             filesCount.incrementAndGet();
-            clientInfo.incInputFilesRecieved();
+            clientInfo.incInputFilesReceived();
             synchronized (waitingObject){
                 waitingObject.notifyAll();
             }
@@ -250,7 +245,6 @@ public class ManageClients implements Runnable {
             if (!messages.isEmpty()){
                 running = sqs.safelyDeleteMessages(messages, C2M_QueueURL);
             }
-
 
             // If manager is in termination mode and finished handling all clients (existing prior to the termination message)
             // then this thread has finish

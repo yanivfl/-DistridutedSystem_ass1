@@ -1,6 +1,5 @@
 package apps;
 
-
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,10 +16,7 @@ public class ClientInfo {
     private AtomicInteger inputFilesRecieved;
     private int reviewsPerWorker;
 
-
-
     public ClientInfo(int reviewsPerWorker, int numFiles) {
-
         this.outputFilesLeft = new AtomicInteger(numFiles);
         this.inputFilesRecieved = new AtomicInteger(0);
         this.reviewsPerWorker = reviewsPerWorker;
@@ -40,7 +36,7 @@ public class ClientInfo {
         return (long) in2outMap.get(inputKey).get(Constants.TOTAL_FILE_REVIEWS);
     }
 
-    public boolean deleteLocalFile(String inBucket, String inputKey){
+    public void deleteLocalFile(String inBucket, String inputKey){
         if(getLockForInputKey(inputKey).isHeldByCurrentThread()){
             System.out.println("Entering deleteLocalFile with lock");
             getLockForInputKey(inputKey).unlock();
@@ -50,9 +46,9 @@ public class ClientInfo {
         try {
             String localFileName = getLocalFileName(inBucket, inputKey);
             isDeleted = new File(localFileName).delete();
-        } finally {
+        }
+        finally {
             getLockForInputKey(inputKey).unlock();
-            return isDeleted  ;
         }
     }
 
@@ -62,27 +58,11 @@ public class ClientInfo {
 
     private boolean isNewMessage(String localFileName, String msg) {
         System.out.println("in new message");
-//        try{
-            if(! new File(localFileName).isFile()){
-                System.out.println("File doesn't exist, return true");
-                return true;
-            }
-
-//            BufferedReader outputfileReader = new BufferedReader(new FileReader(localFileName));;
-//            while (outputfileReader.ready()) {
-//                String line = outputfileReader.readLine();
-//                if (line.equals(msg)){
-//                    System.out.println("msg already exists in file");
-//                    return false;
-//                }
-//                if(line==null) break;
-//            }
+        if(!new File(localFileName).isFile()){
+            System.out.println("File doesn't exist, return true");
             return true;
-//        } catch (IOException e ){
-//            System.out.println("exception is: "+ e);
-//            return false;
-//        }
-
+        }
+        return true;
     }
 
     private void appendToLocalFile(String localFileName, String msg){
@@ -114,7 +94,8 @@ public class ClientInfo {
                 isUpdated = true;
             }
 
-        } finally {
+        }
+        finally {
             getLockForInputKey(inputKey).unlock();
             return isUpdated;
         }
@@ -128,25 +109,22 @@ public class ClientInfo {
         }
         long newCounter = -1; //default non zero value
         getLockForInputKey(inputKey).lock();
-        try {
 
-            // TODO: consider using replace
+        try {
         newCounter = (Long) in2outMap.get(inputKey).get(Constants.COUNTER) -1;
         in2outMap.get(inputKey).put(Constants.COUNTER, newCounter);
-        } finally {
+        }
+        finally {
             getLockForInputKey(inputKey).unlock();
             return newCounter ;
         }
     }
 
-
-
-
     public int decOutputFilesLeft() {
         return outputFilesLeft.decrementAndGet();
     }
 
-    public int incInputFilesRecieved() {
+    public int incInputFilesReceived() {
         return inputFilesRecieved.incrementAndGet();
     }
 

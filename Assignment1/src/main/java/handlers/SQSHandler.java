@@ -1,27 +1,17 @@
 package handlers;
 
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.concurrent.locks.ReentrantLock;
-
-import apps.Constants;
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
-import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.CreateQueueRequest;
-import com.amazonaws.services.sqs.model.DeleteMessageRequest;
 import com.amazonaws.services.sqs.model.DeleteQueueRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
-import messages.Manager2Client;
 
 public class SQSHandler {
 
@@ -111,12 +101,14 @@ public class SQSHandler {
         try{
             sqs.sendMessage(myQueueUrl, message);
             return true;
-        }catch (Exception e) {
+        }
+        catch (Exception e) {
             if (Thread.interrupted()) {
                 sqs.sendMessage(myQueueUrl, message);
                 System.out.println("Thread interrupted, killing it softly");
                 return false;
-            } else {
+            }
+            else {
                 e.printStackTrace();
             }
         }
