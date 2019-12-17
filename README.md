@@ -79,8 +79,11 @@ __Test:__
 (total - all 5 input files from the assignment)
 
 __AMI:__ ami-b66ed3de
+
 __Manager instance type:__ T2Small
+
 __Workers instance type:__ T2Large
+
 __Time for the program to finish:__
 
 
