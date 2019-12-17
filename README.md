@@ -84,7 +84,7 @@ __Manager instance type:__ T2Small
 
 __Workers instance type:__ T2Large
 
-__Time for the program to finish:__
+__Time for the program to finish:__ 16 minutes
 
 
 
